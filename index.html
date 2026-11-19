@@ -1,0 +1,3510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FreightIQ — Maritime Freight Forecasting & Vessel Chartering Platform</title>
+
+  <!-- Fonts: Bricolage Grotesque, Public Sans, JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Leaflet.js Interactive Map & Satellite Layer Support -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <style>
+    /* ==========================================================================
+       1. DESIGN TOKENS — NAVY BLUE, CRISP WHITE & CYAN MARITIME PALETTE
+       ========================================================================== */
+    :root {
+      --bg: #f1f6fa;
+      --surf: #ffffff;
+      --surf-alt: #e7f0f7;
+      --surf-hover: #f5f9fc;
+      --navy-deep: #07192c;
+      --navy-mid: #0b2540;
+      --navy-light: #12375c;
+      --ink: #07192c;
+      --ink-muted: #496580;
+      --border: #cfe0ed;
+
+      --cyan: #0891b2;
+      --cyan-bright: #06b6d4;
+      --cyan-soft: rgba(6, 182, 212, 0.12);
+      --accent: #0284c7;
+      --accent-soft: rgba(2, 132, 199, 0.12);
+
+      /* Semantic Status Badges */
+      --ok-bg: #dcfce7;
+      --ok-ink: #15803d;
+      --ok-border: #86efac;
+
+      --rev-bg: #fef3c7;
+      --rev-ink: #b45309;
+      --rev-border: #fcd34d;
+
+      --bad-bg: #fee2e2;
+      --bad-ink: #b91c1c;
+      --bad-border: #fca5a5;
+
+      --inf-bg: #cffafe;
+      --inf-ink: #0e7490;
+      --inf-border: #67e8f9;
+
+      --shadow-sm: 0 1px 3px rgba(7, 25, 44, 0.06);
+      --shadow-md: 0 6px 20px rgba(7, 25, 44, 0.08);
+      --shadow-lg: 0 18px 42px rgba(7, 25, 44, 0.16);
+
+      --font-display: 'Bricolage Grotesque', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-body: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --sidebar-w: 268px;
+    }
+
+    [data-theme="dark"] {
+      --bg: #05111e;
+      --surf: #0b1f33;
+      --surf-alt: #102a45;
+      --surf-hover: #133150;
+      --ink: #e8f2fa;
+      --ink-muted: #8ea9c4;
+      --border: #1d3c5c;
+
+      --cyan: #06b6d4;
+      --cyan-bright: #22d3ee;
+      --cyan-soft: rgba(6, 182, 212, 0.16);
+      --accent: #38bdf8;
+      --accent-soft: rgba(56, 189, 248, 0.16);
+
+      --ok-bg: rgba(16, 185, 129, 0.16);
+      --ok-ink: #34d399;
+      --ok-border: rgba(52, 211, 153, 0.35);
+
+      --rev-bg: rgba(245, 158, 11, 0.16);
+      --rev-ink: #fbbf24;
+      --rev-border: rgba(251, 191, 36, 0.35);
+
+      --bad-bg: rgba(239, 68, 68, 0.16);
+      --bad-ink: #f87171;
+      --bad-border: rgba(248, 113, 113, 0.35);
+
+      --inf-bg: rgba(6, 182, 212, 0.18);
+      --inf-ink: #22d3ee;
+      --inf-border: rgba(34, 211, 238, 0.35);
+
+      --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.28);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.55);
+    }
+
+    /* ==========================================================================
+       2. BASE RESET & TYPOGRAPHY
+       ========================================================================== */
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-body);
+      font-size: 14.5px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    h1, h2, h3, h4, .display-font {
+      font-family: var(--font-display);
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+
+    .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+    .num { font-variant-numeric: tabular-nums; }
+    button, input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+
+    /* ==========================================================================
+       3. SMALL SQUARE TUTORIAL TRIGGER BOX (TOPBAR & LOGIN PORTAL)
+       ========================================================================== */
+    .tutorial-square-btn {
+      width: 40px;
+      height: 40px;
+      min-width: 40px;
+      min-height: 40px;
+      padding: 0;
+      border-radius: 10px;
+      border: 1.5px solid var(--cyan);
+      background: linear-gradient(145deg, var(--surf), var(--surf-alt));
+      color: var(--cyan);
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1px;
+      cursor: pointer;
+      position: relative;
+      box-shadow: 0 2px 8px rgba(6, 182, 212, 0.16);
+      transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+      flex-shrink: 0;
+    }
+
+    .tutorial-square-btn:hover {
+      background: linear-gradient(135deg, #07192c, #0891b2);
+      color: #ffffff;
+      border-color: #22d3ee;
+      transform: translateY(-1px);
+      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.22), 0 6px 16px rgba(8, 145, 178, 0.3);
+    }
+
+    .tutorial-square-btn:active {
+      transform: translateY(0);
+    }
+
+    .tutorial-square-btn .tut-q-icon {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .tutorial-square-btn .tut-q-label {
+      font-family: var(--font-mono);
+      font-size: 8.5px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      line-height: 1;
+    }
+
+    .tutorial-square-btn.login-variant {
+      background: #f0f9ff;
+      border-color: #0891b2;
+      color: #0891b2;
+    }
+
+    .tutorial-square-btn.login-variant:hover {
+      background: linear-gradient(135deg, #07192c, #0891b2);
+      color: #ffffff;
+    }
+
+    /* ==========================================================================
+       4. INTERACTIVE TUTORIAL MODAL WALKTHROUGH
+       ========================================================================== */
+    .tutorial-modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(4, 14, 26, 0.78);
+      backdrop-filter: blur(5px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .tutorial-modal-overlay.open {
+      display: flex;
+      animation: fadeInModal 0.2s ease-out;
+    }
+
+    @keyframes fadeInModal {
+      from { opacity: 0; transform: scale(0.97); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .tutorial-modal-card {
+      width: 100%;
+      max-width: 680px;
+      background: var(--surf);
+      color: var(--ink);
+      border: 1.5px solid rgba(6, 182, 212, 0.45);
+      border-radius: 18px;
+      box-shadow: 0 28px 70px rgba(0, 0, 0, 0.55);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tutorial-modal-header {
+      background: linear-gradient(135deg, #07192c 0%, #0d3257 60%, #087a94 100%);
+      color: #ffffff;
+      padding: 20px 24px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      border-bottom: 1px solid rgba(34, 211, 238, 0.28);
+    }
+
+    .tutorial-step-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: rgba(6, 182, 212, 0.24);
+      border: 1px solid rgba(34, 211, 238, 0.45);
+      color: #67e8f9;
+      margin-bottom: 8px;
+    }
+
+    .tutorial-modal-body {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .tutorial-feature-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .tutorial-feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      padding: 11px 14px;
+      border-radius: 10px;
+      background: var(--surf-alt);
+      border: 1px solid var(--border);
+      font-size: 13.5px;
+    }
+
+    .tutorial-feature-bullet {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #0b2540, #0891b2);
+      color: #ffffff;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .tutorial-tip-box {
+      padding: 12px 15px;
+      border-radius: 10px;
+      background: var(--cyan-soft);
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      font-size: 12.5px;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .tutorial-modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      background: var(--surf-alt);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .tutorial-dots {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .tutorial-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      border: 1px solid var(--cyan);
+      background: transparent;
+      padding: 0;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .tutorial-dot.active {
+      width: 24px;
+      background: var(--cyan);
+    }
+
+    /* ==========================================================================
+       5. ROLE-BASED LOGIN PORTAL SCREEN
+       ========================================================================== */
+    .login-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: radial-gradient(circle at 20% 20%, #0f365c 0%, #07192c 55%, #040e1a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .login-overlay.hidden { display: none; }
+
+    .login-card {
+      width: 100%;
+      max-width: 980px;
+      background: #0b2239;
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      border-radius: 20px;
+      box-shadow: 0 25px 65px rgba(0, 0, 0, 0.65);
+      display: grid;
+      grid-template-columns: 1.05fr 1fr;
+      overflow: hidden;
+      color: #ffffff;
+    }
+
+    @media (max-width: 840px) {
+      .login-card { grid-template-columns: 1fr; }
+    }
+
+    .login-left {
+      padding: 36px 34px;
+      background: linear-gradient(155deg, #07192c 0%, #0c2f52 60%, #085f75 100%);
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .login-right {
+      padding: 36px 34px;
+      background: #ffffff;
+      color: #07192c;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .role-preset-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 9px;
+      margin-top: 8px;
+    }
+
+    .role-preset-btn {
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #07192c;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .role-preset-btn:hover, .role-preset-btn.active {
+      border-color: #0891b2;
+      background: #ecfeff;
+      box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2);
+    }
+
+    /* ==========================================================================
+       6. APP SHELL & NAVY SIDEBAR
+       ========================================================================== */
+    .app-shell { display: flex; min-height: 100vh; width: 100%; }
+
+    .sidebar {
+      width: var(--sidebar-w);
+      flex-shrink: 0;
+      background-color: var(--navy-deep);
+      color: #e2eef8;
+      border-right: 1px solid rgba(6, 182, 212, 0.2);
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      z-index: 30;
+    }
+
+    .brand-bar {
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #ffffff;
+      cursor: pointer;
+    }
+
+    .brand-wordmark {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1.35rem;
+      letter-spacing: -0.03em;
+    }
+
+    .brand-wordmark span { color: #22d3ee; }
+
+    .role-user-card {
+      padding: 12px 16px;
+      background: rgba(6, 182, 212, 0.08);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .shipment-context-box {
+      padding: 11px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      background-color: rgba(255, 255, 255, 0.03);
+    }
+
+    .context-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #94b3ce;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .context-select {
+      width: 100%;
+      padding: 7px 9px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      background-color: #0d2844;
+      color: #ffffff;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .nav-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .nav-section-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #67e8f9;
+      opacity: 0.78;
+      padding: 10px 10px 4px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 9px;
+      padding: 8.5px 11px;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      background: transparent;
+      color: #b8cde0;
+      font-weight: 500;
+      font-size: 13px;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .nav-item:hover {
+      background-color: rgba(255, 255, 255, 0.07);
+      color: #ffffff;
+    }
+
+    .nav-item.active {
+      background: linear-gradient(90deg, rgba(6, 182, 212, 0.24), rgba(2, 132, 199, 0.14));
+      color: #22d3ee;
+      border-color: rgba(34, 211, 238, 0.35);
+      font-weight: 700;
+    }
+
+    .nav-item-left { display: flex; align-items: center; gap: 9px; min-width: 0; }
+    .nav-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+    .nav-pill {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background-color: rgba(255, 255, 255, 0.12);
+      color: #e2eef8;
+    }
+
+    .nav-item.active .nav-pill {
+      background-color: #06b6d4;
+      color: #07192c;
+    }
+
+    .sidebar-footer {
+      padding: 11px 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      gap: 8px;
+    }
+
+    .sidebar-btn {
+      flex: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background-color: rgba(255, 255, 255, 0.06);
+      color: #e2eef8;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .sidebar-btn:hover {
+      border-color: #22d3ee;
+      color: #22d3ee;
+    }
+
+    .main-area { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+    .topbar {
+      background-color: var(--surf);
+      border-bottom: 1px solid var(--border);
+      padding: 13px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .topbar-breadcrumb {
+      font-size: 11.5px;
+      color: var(--ink-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .topbar-title { font-size: 1.35rem; font-weight: 800; color: var(--ink); }
+    .topbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .content-container {
+      padding: 20px 24px 96px;
+      max-width: 1480px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 980px) {
+      .app-shell { flex-direction: column; }
+      .sidebar { width: 100%; height: auto; position: sticky; top: 0; }
+      .nav-scroll { flex-direction: row; overflow-x: auto; padding: 8px 12px; gap: 6px; }
+      .nav-section-label, .sidebar-footer { display: none; }
+      .mobile-controls { display: flex !important; gap: 6px; }
+      .topbar { padding: 12px 16px; }
+      .content-container { padding: 16px 14px 96px; }
+    }
+
+    .mobile-controls { display: none; }
+
+    /* ==========================================================================
+       7. SHARED UI COMPONENTS: CARDS, BADGES, BUTTONS, TABLES, GRIDS
+       ========================================================================== */
+    .card {
+      background-color: var(--surf);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .card-title {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-subtitle { font-size: 12.5px; color: var(--ink-muted); }
+
+    /* Semantic & Provenance Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .badge.ok { background-color: var(--ok-bg); color: var(--ok-ink); border-color: var(--ok-border); }
+    .badge.rev { background-color: var(--rev-bg); color: var(--rev-ink); border-color: var(--rev-border); }
+    .badge.bad { background-color: var(--bad-bg); color: var(--bad-ink); border-color: var(--bad-border); }
+    .badge.inf { background-color: var(--inf-bg); color: var(--inf-ink); border-color: var(--inf-border); }
+    .badge.live-tag { background: rgba(16, 185, 129, 0.14); color: #059669; border-color: rgba(16, 185, 129, 0.4); }
+    .badge.sim-tag { background: rgba(6, 182, 212, 0.14); color: #0891b2; border-color: rgba(6, 182, 212, 0.4); }
+
+    [data-theme="dark"] .badge.live-tag { color: #34d399; }
+    [data-theme="dark"] .badge.sim-tag { color: #22d3ee; }
+
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; background-color: currentColor; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 8px 14px;
+      min-height: 38px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background-color: var(--surf);
+      color: var(--ink);
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+
+    .btn:hover { background-color: var(--surf-alt); border-color: var(--cyan); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0b2540, #0891b2);
+      border-color: #0891b2;
+      color: #ffffff;
+    }
+
+    .btn-primary:hover { filter: brightness(1.1); color: #ffffff; }
+
+    .btn-cyan {
+      background-color: var(--cyan);
+      border-color: var(--cyan);
+      color: #ffffff;
+    }
+
+    .btn-cyan:hover { filter: brightness(1.08); color: #ffffff; }
+
+    .btn-sm { padding: 5px 10px; min-height: 31px; font-size: 12px; }
+
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+
+    @media (max-width: 1180px) {
+      .grid-4, .grid-3 { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 680px) {
+      .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+    th {
+      background-color: var(--surf-alt);
+      color: var(--ink-muted);
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 10px 13px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td { padding: 10px 13px; border-bottom: 1px solid var(--border); color: var(--ink); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background-color: var(--surf-hover); }
+
+    .progress-track { width: 100%; height: 8px; background-color: var(--surf-alt); border-radius: 999px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #0b2540, #06b6d4); border-radius: 999px; transition: width 0.35s ease; }
+
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-label { font-size: 11.5px; font-weight: 700; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .form-input, .form-select {
+      width: 100%;
+      padding: 8px 12px;
+      min-height: 39px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background-color: var(--surf);
+      color: var(--ink);
+      outline: none;
+    }
+    .form-input:focus, .form-select:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--cyan-soft); }
+
+    .pill-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .filter-pill {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background-color: var(--surf);
+      color: var(--ink-muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .filter-pill:hover { border-color: var(--cyan); color: var(--ink); }
+    .filter-pill.active { background-color: var(--navy-mid); border-color: var(--cyan); color: #22d3ee; }
+
+    /* ==========================================================================
+       8. HERO BANNER, KPI CARDS & INTERACTIVE LEAFLET MAP STYLING
+       ========================================================================== */
+    .hero-banner {
+      background: linear-gradient(135deg, #07192c 0%, #0d3257 52%, #087a94 100%);
+      color: #ffffff;
+      border-radius: var(--radius-lg);
+      padding: 22px 26px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+      box-shadow: var(--shadow-md);
+      border: 1px solid rgba(34, 211, 238, 0.25);
+    }
+
+    .hero-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: rgba(6, 182, 212, 0.2);
+      border: 1px solid rgba(34, 211, 238, 0.35);
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+      color: #67e8f9;
+    }
+
+    .hero-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 6px; color: #ffffff; }
+    .hero-desc { font-size: 13.5px; color: rgba(255, 255, 255, 0.88); max-width: 740px; }
+
+    .kpi-card { display: flex; flex-direction: column; gap: 7px; }
+    .kpi-label { font-size: 12px; font-weight: 600; color: var(--ink-muted); display: flex; align-items: center; justify-content: space-between; }
+    .kpi-value { font-family: var(--font-display); font-size: 1.65rem; font-weight: 800; color: var(--ink); line-height: 1.15; }
+    .kpi-foot { font-size: 12px; color: var(--ink-muted); display: flex; align-items: center; gap: 6px; }
+
+    /* Leaflet Interactive Map Wrapper */
+    .map-layout {
+      display: grid;
+      grid-template-columns: 1fr 355px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    @media (max-width: 1100px) {
+      .map-layout { grid-template-columns: 1fr; }
+    }
+
+    #leafletMapContainer {
+      width: 100%;
+      height: 550px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      z-index: 5;
+      background: #07192c;
+    }
+
+    .vessel-specs-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      background-color: var(--surf-alt);
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+    }
+
+    .spec-item { display: flex; flex-direction: column; }
+    .spec-k { font-size: 10px; text-transform: uppercase; font-weight: 700; color: var(--ink-muted); }
+    .spec-v { font-size: 13px; font-weight: 700; color: var(--ink); }
+
+    .stacked-bar { display: flex; width: 100%; height: 26px; border-radius: 8px; overflow: hidden; background-color: var(--surf-alt); margin: 12px 0; }
+    .stacked-seg { height: 100%; transition: width 0.3s ease; }
+
+    /* ==========================================================================
+       9. FLOATING AI ASSISTANT DRAWER & TOAST
+       ========================================================================== */
+    .ai-fab {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 50;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(34, 211, 238, 0.45);
+      background: linear-gradient(135deg, #07192c, #0891b2);
+      color: #ffffff;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 13.5px;
+      box-shadow: var(--shadow-lg);
+      cursor: pointer;
+    }
+
+    .ai-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 400px;
+      max-width: 100vw;
+      height: 100vh;
+      background-color: var(--surf);
+      border-left: 1px solid var(--border);
+      box-shadow: var(--shadow-lg);
+      z-index: 60;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .ai-drawer.open { transform: translateX(0); }
+
+    .ai-header {
+      padding: 15px 18px;
+      border-bottom: 1px solid var(--border);
+      background-color: var(--navy-deep);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .ai-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 11px; }
+    .ai-msg { padding: 11px 14px; border-radius: 12px; font-size: 13px; line-height: 1.5; max-width: 92%; }
+    .ai-msg.bot { background-color: var(--surf-alt); color: var(--ink); border: 1px solid var(--border); align-self: flex-start; }
+    .ai-msg.user { background: linear-gradient(135deg, #0b2540, #0891b2); color: #ffffff; align-self: flex-end; }
+    .ai-msg-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .ai-chips { padding: 9px 14px; border-top: 1px solid var(--border); display: flex; gap: 6px; overflow-x: auto; }
+    .ai-chip { padding: 5px 10px; border-radius: 999px; border: 1px solid var(--border); background-color: var(--surf-alt); font-size: 11.5px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+    .ai-input-bar { padding: 11px 14px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+
+    .toast-banner {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(130%);
+      background-color: #07192c;
+      color: #22d3ee;
+      border: 1px solid rgba(34, 211, 238, 0.4);
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: var(--shadow-lg);
+      z-index: 220;
+      transition: transform 0.22s ease;
+    }
+
+    .toast-banner.show { transform: translateX(-50%) translateY(0); }
+
+    @media print {
+      .sidebar, .topbar, .ai-fab, .ai-drawer, .toast-banner, .no-print, .login-overlay, .tutorial-modal-overlay { display: none !important; }
+      body, .app-shell, .main-area, .content-container { background: #ffffff !important; color: #07192c !important; padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========================================================================
+       1. ROLE-BASED LOGIN PORTAL (Admin, Exporter, Importer, Ship Owner)
+       ======================================================================== -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-card">
+      <!-- Left Maritime Brand & Capabilities Panel -->
+      <div class="login-left">
+        <div>
+          <div style="display: flex; align-items: center; gap: 11px; margin-bottom: 18px;">
+            <svg width="38" height="38" viewBox="0 0 36 36" fill="none">
+              <rect width="36" height="36" rx="9" fill="url(#loginGrad)" />
+              <circle cx="18" cy="18" r="11" stroke="white" stroke-opacity="0.4" stroke-width="1.5" />
+              <polygon points="18,7 21.5,18 18,15.5 14.5,18" fill="#ffffff" />
+              <polygon points="18,29 21.5,18 18,20.5 14.5,18" fill="#67e8f9" />
+              <defs>
+                <linearGradient id="loginGrad" x1="0" y1="0" x2="36" y2="36">
+                  <stop stop-color="#0284c7" />
+                  <stop offset="1" stop-color="#06b6d4" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div style="font-family: var(--font-display); font-weight: 800; font-size: 1.55rem;">
+              Freight<span style="color: #22d3ee;">IQ</span>
+            </div>
+          </div>
+
+          <h2 style="font-size: 1.55rem; font-weight: 800; line-height: 1.25; margin-bottom: 12px;">
+            Global Freight Forecasting & Vessel Chartering Intelligence
+          </h2>
+          <p style="font-size: 13.5px; color: rgba(255,255,255,0.84); line-height: 1.6;">
+            Unified maritime command desk connecting Exporters, Importers, Ship Owners, and Platform Administrators with live satellite mapping, AIS vessel telemetry, global & Finnish port directories, and AI freight forecasting.
+          </p>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 9px; font-size: 12.5px;">
+          <div style="display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 10px; background: rgba(255,255,255,0.08);">
+            <span style="color: #22d3ee; font-weight: 800;">●</span>
+            <span><strong>Live Map & Satellite Tiles:</strong> Real Esri World Imagery & UN/LOCODE global ports</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 10px; background: rgba(255,255,255,0.08);">
+            <span style="color: #38bdf8; font-weight: 800;">●</span>
+            <span><strong>Simulated AIS & AI Forecasting:</strong> Real-time voyage tracking & predictive spot rates</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Role Credentials Form -->
+      <div class="login-right">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px;">
+          <div>
+            <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #0891b2;">Role-Based Access Control</span>
+            <h3 style="font-size: 1.4rem; font-weight: 800; color: #07192c; margin-top: 2px;">Sign In to Chartering Desk</h3>
+          </div>
+          <!-- Small Square Box Tutorial Trigger on Login Card -->
+          <button type="button" class="tutorial-square-btn login-variant" onclick="openTutorialModal(0)" title="Interactive Platform Tutorial" aria-label="Interactive Platform Tutorial">
+            <span class="tut-q-icon">?</span>
+            <span class="tut-q-label">Guide</span>
+          </button>
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <div style="font-size: 11.5px; font-weight: 700; color: #475569; margin-bottom: 4px;">1-Click Role Credential Presets:</div>
+          <div class="role-preset-grid" id="rolePresetGrid"></div>
+        </div>
+
+        <form onsubmit="handleLoginSubmit(event)" style="display: flex; flex-direction: column; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" style="color: #334155;">Role Portal</label>
+            <select id="loginRoleSelect" class="form-select" style="background: #f8fafc; color: #07192c; border-color: #cbd5e1;" onchange="fillPresetRole(this.value)">
+              <option value="Admin">Platform Admin</option>
+              <option value="Exporter">Exporter (Cargo Shipper)</option>
+              <option value="Importer">Importer (Receiver / Buyer)</option>
+              <option value="Ship Owner">Ship Owner / Operator</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="color: #334155;">Corporate Email</label>
+            <input type="email" id="loginEmailInput" class="form-input" style="background: #f8fafc; color: #07192c; border-color: #cbd5e1;" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="color: #334155;">Access Password</label>
+            <input type="password" id="loginPassInput" class="form-input" style="background: #f8fafc; color: #07192c; border-color: #cbd5e1;" required />
+          </div>
+
+          <div id="loginErrorBox" style="display: none; padding: 9px 12px; border-radius: 8px; background: #fee2e2; color: #b91c1c; font-size: 12.5px; font-weight: 600;"></div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; min-height: 44px; font-size: 14px; margin-top: 4px;">
+            Authenticate & Launch Workspace →
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       2. INTERACTIVE 6-STEP PLATFORM TUTORIAL MODAL
+       ======================================================================== -->
+  <div class="tutorial-modal-overlay no-print" id="tutorialModalOverlay" role="dialog" aria-modal="true" aria-labelledby="tutorialModalTitle" onclick="if(event.target === this) closeTutorialModal()">
+    <div class="tutorial-modal-card" id="tutorialModalCard"></div>
+  </div>
+
+  <!-- ========================================================================
+       3. MAIN APPLICATION SHELL
+       ======================================================================== -->
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand-bar">
+        <div class="brand-logo" onclick="navigateTo('dashboard')">
+          <svg width="32" height="32" viewBox="0 0 36 36" fill="none">
+            <rect width="36" height="36" rx="9" fill="url(#sbGrad)" />
+            <circle cx="18" cy="18" r="11" stroke="white" stroke-opacity="0.35" stroke-width="1.5" />
+            <polygon points="18,8 21.5,18 18,15.5 14.5,18" fill="#ffffff" />
+            <polygon points="18,28 21.5,18 18,20.5 14.5,18" fill="#67e8f9" />
+            <defs>
+              <linearGradient id="sbGrad" x1="0" y1="0" x2="36" y2="36">
+                <stop stop-color="#0284c7" />
+                <stop offset="1" stop-color="#06b6d4" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <div class="brand-wordmark">Freight<span>IQ</span></div>
+        </div>
+        <div class="mobile-controls">
+          <button class="sidebar-btn" onclick="toggleTheme()">☀/☾</button>
+          <button class="sidebar-btn" onclick="openLoginModal()">Switch Role</button>
+        </div>
+      </div>
+
+      <!-- Logged-In Role Profile Card -->
+      <div class="role-user-card" id="sidebarUserCard"></div>
+
+      <!-- Active Shipment Fixture Selector -->
+      <div class="shipment-context-box">
+        <div class="context-label">
+          <span>Active Fixture</span>
+          <span id="contextStagePill" class="mono" style="color: #22d3ee;">Vessel Selected</span>
+        </div>
+        <select id="shipmentSwitcher" class="context-select" onchange="switchShipment(this.value)"></select>
+      </div>
+
+      <!-- Role-Filtered Sidebar Navigation -->
+      <nav class="nav-scroll" id="sidebarNav" aria-label="Primary Navigation"></nav>
+
+      <!-- Sidebar Bottom Controls -->
+      <div class="sidebar-footer">
+        <button class="sidebar-btn" onclick="toggleTheme()" id="themeToggleBtn">☾ Dark</button>
+        <button class="sidebar-btn" onclick="openLoginModal()" style="border-color: rgba(34,211,238,0.4); color: #22d3ee;">⇄ Switch Role</button>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <div>
+          <div class="topbar-breadcrumb">
+            <span id="topbarRoleBadge" style="font-weight: 700; color: var(--cyan);">ADMIN DESK</span>
+            <span>•</span>
+            <span id="topbarShipmentRef" class="mono">FQ-2611</span>
+          </div>
+          <h1 class="topbar-title" id="topbarViewTitle">Chartering Operations Dashboard</h1>
+        </div>
+        <div class="topbar-actions" id="topbarActions"></div>
+      </header>
+
+      <div class="content-container" id="viewContainer"></div>
+    </main>
+  </div>
+
+  <!-- Floating AI Copilot Button & Drawer -->
+  <button class="ai-fab no-print" onclick="toggleAiDrawer(true)">
+    <span>✦</span>
+    <span>Ask FreightIQ AI</span>
+  </button>
+
+  <aside class="ai-drawer no-print" id="aiDrawer">
+    <div class="ai-header">
+      <div>
+        <div style="font-family: var(--font-display); font-weight: 800; font-size: 1.02rem; display: flex; align-items: center; gap: 6px;">
+          <span style="color: #22d3ee;">✦</span> FreightIQ Maritime Copilot
+        </div>
+        <div style="font-size: 11px; color: #67e8f9; margin-top: 2px;" id="aiContextPill">Role: Admin • FQ-2611</div>
+      </div>
+      <button class="sidebar-btn" style="flex: 0 0 auto; padding: 5px 10px;" onclick="toggleAiDrawer(false)">✕</button>
+    </div>
+
+    <div class="ai-messages" id="aiMessages"></div>
+    <div class="ai-chips" id="aiQuickChips"></div>
+
+    <form class="ai-input-bar" onsubmit="handleAiSubmit(event)">
+      <input type="text" id="aiInput" class="form-input" placeholder="Ask about Finland ports, AI rates, AIS ETA..." autocomplete="off" />
+      <button type="submit" class="btn btn-cyan">Send</button>
+    </form>
+  </aside>
+
+  <div class="toast-banner" id="toastBanner" role="status" aria-live="polite"></div>
+
+  <!-- ========================================================================
+       4. CORE JAVASCRIPT: DATA, AUTH, TUTORIAL WALKTHROUGH, LEAFLET MAP & AI
+       ======================================================================== -->
+  <script>
+    /* ------------------------------------------------------------------------
+       A. 6-STEP INTERACTIVE TUTORIAL WALKTHROUGH CONTENT
+       ------------------------------------------------------------------------ */
+    const TUTORIAL_STEPS = [
+      {
+        stepNum: 1,
+        badge: 'STEP 1 OF 6 • ROLE WORKSPACES',
+        title: 'Role-Based Portals & 1-Click Switching',
+        summary: 'FreightIQ tailors navigation, telemetry, and operational permissions across four specialized maritime personas.',
+        bullets: [
+          { code: 'ADM', text: 'Platform Admin: Full system oversight, user provisioning, fleet registration, and audit logs.' },
+          { code: 'EXP', text: 'Exporter Desk: Finnish & global port dispatch, Ice-Class vessel matching, and cargo booking.' },
+          { code: 'IMP', text: 'Importer Desk: Inbound bulk/container tracking, discharge port queue monitoring, and rate forecasting.' },
+          { code: 'OWN', text: 'Ship Owner: Fleet utilization, live AIS speed/fuel telemetry, and spot charter rate management.' }
+        ],
+        tip: 'Use the "Switch Role" button at the bottom of the left sidebar anytime to test different user views.',
+        targetView: 'dashboard',
+        targetLabel: 'Try Role Dashboard →'
+      },
+      {
+        stepNum: 2,
+        badge: 'STEP 2 OF 6 • SATELLITE & AIS TELEMETRY',
+        title: 'Live Satellite & Nautical AIS Map',
+        summary: 'Monitor global shipping corridors using real Esri World Imagery satellite tiles, OpenSeaMap seamarks, and live simulated AIS vessel movement.',
+        bullets: [
+          { code: 'SAT', text: 'Switch between Maritime Chart, Satellite View (Esri), and Dark Radar Mode in one click.' },
+          { code: 'AIS', text: 'Play, pause, or accelerate (1x, 5x, 20x) live vessel positions along authentic sea waypoints.' },
+          { code: 'WX', text: 'Toggle Storm Zones and jump directly to Finland & Baltic, Bay of Bengal, or East Asia regions.' }
+        ],
+        tip: 'Click any vessel badge or port circle on the map to inspect GPS coordinates, draft limits, and projected ETA.',
+        targetView: 'map',
+        targetLabel: 'Try Satellite AIS Map →'
+      },
+      {
+        stepNum: 3,
+        badge: 'STEP 3 OF 6 • PORT INTELLIGENCE',
+        title: 'Global & 16-Port Finland UN/LOCODE Directory',
+        summary: 'Search verified UN/LOCODE ports worldwide—including comprehensive coverage of 16 Finnish Baltic & Bothnian Bay ports.',
+        bullets: [
+          { code: 'FIN', text: 'Instant 1-click filter for Finland ports: Helsinki, HaminaKotka, Hanko, Turku, Rauma, Pori, Kokkola, and Oulu.' },
+          { code: 'DRF', text: 'Verify maximum berth draft (meters), Ice-Class 1A support, and real-time terminal queue wait times.' },
+          { code: 'ACT', text: 'Jump straight from any port row to its satellite map location or pre-fill it into a new cargo booking.' }
+        ],
+        tip: 'Filter by "Ice-Class" or "Timber" cargo facilities to match winter Baltic export stems.',
+        targetView: 'ports',
+        targetLabel: 'Try Port Directory →'
+      },
+      {
+        stepNum: 4,
+        badge: 'STEP 4 OF 6 • CHARTERING & BOOKING',
+        title: 'Vessel Registry & Import / Export Booking Engine',
+        summary: 'Evaluate Ultramax, Panamax, Ro-Ro, and Ice-Class tonnage, then calculate instant ocean freight and port disbursements.',
+        bullets: [
+          { code: 'FLT', text: 'Filter vessels by IMO number, Deadweight (DWT), cargo gear cranes, and live spot availability.' },
+          { code: 'QTE', text: 'Automatic Great-Circle Haversine nautical mile calculation with transit days and total PDA cost.' },
+          { code: 'CHK', text: 'Built-in Draft Advisory warns automatically if vessel draft exceeds origin or destination terminal limits.' }
+        ],
+        tip: 'Submitting a booking immediately adds your fixture to the live Bookings & Orders Ledger.',
+        targetView: 'booking',
+        targetLabel: 'Try Booking Engine →'
+      },
+      {
+        stepNum: 5,
+        badge: 'STEP 5 OF 6 • AI FORECASTING & RISK',
+        title: 'AI Freight Forecasting & Scenario Simulator',
+        summary: 'Predict 6-month forward freight trajectories and stress-test charter timing against spot rate drift and port congestion.',
+        bullets: [
+          { code: 'AI', text: 'Adjust VLSFO bunker fuel ($/MT) and cargo tonnage to view 6-month rate curves and AI-ranked vessel fits.' },
+          { code: 'SIM', text: 'Compare "Charter Immediately" vs "Waiting 0–14 Days" with interactive demurrage and congestion sliders.' },
+          { code: 'MEM', text: 'Generate print-ready Executive Decision Reports for board sign-off.' }
+        ],
+        tip: 'Use the Scenario Simulator before locking fixtures during winter Baltic ice surges.',
+        targetView: 'forecast',
+        targetLabel: 'Try AI Forecasting →'
+      },
+      {
+        stepNum: 6,
+        badge: 'STEP 6 OF 6 • ADMIN & AI COPILOT',
+        title: 'Admin Control Center & FreightIQ AI Copilot',
+        summary: 'Manage platform governance in the Admin Control Center or ask natural-language questions anytime via the floating AI drawer.',
+        bullets: [
+          { code: 'GOV', text: 'Admin Control Center: Activate/suspend users, register new vessels into the fleet, and approve fixtures.' },
+          { code: 'LOG', text: 'Real-time System Activity & Telemetry Audit Log tracks every charter action across roles.' },
+          { code: 'BOT', text: 'Click "✦ Ask FreightIQ AI" in the bottom-right corner anytime for instant port, rate, and ETA answers.' }
+        ],
+        tip: 'You can reopen this tutorial anytime by clicking the small square [? Guide] button in the top header.',
+        targetView: 'admin',
+        targetLabel: 'Try Admin Control Center →'
+      }
+    ];
+
+    /* ------------------------------------------------------------------------
+       B. ROLE CREDENTIALS & ACCESS CONTROL MATRIX
+       ------------------------------------------------------------------------ */
+    const ROLE_ACCOUNTS = [
+      {
+        role: 'Admin',
+        name: 'Henrik Lindholm',
+        org: 'FreightIQ Global Operations',
+        email: 'admin@freightiq.io',
+        pass: 'Admin@2026',
+        badge: 'System Administrator',
+        allowedViews: ['dashboard', 'map', 'ports', 'vessels', 'booking', 'forecast', 'scenario', 'report', 'orders', 'admin']
+      },
+      {
+        role: 'Exporter',
+        name: 'Aino Virtanen',
+        org: 'Nordic Bulk & Timber Exports Oy (Finland)',
+        email: 'exporter@nordicbulk.fi',
+        pass: 'Export@2026',
+        badge: 'Exporter Desk',
+        allowedViews: ['dashboard', 'booking', 'forecast', 'ports', 'vessels', 'map', 'scenario', 'orders', 'report']
+      },
+      {
+        role: 'Importer',
+        name: 'Wei Chen',
+        org: 'EastAsia Steel & Commodities Ltd.',
+        email: 'importer@eastasia-steel.cn',
+        pass: 'Import@2026',
+        badge: 'Importer Desk',
+        allowedViews: ['dashboard', 'map', 'booking', 'forecast', 'ports', 'vessels', 'orders', 'report']
+      },
+      {
+        role: 'Ship Owner',
+        name: 'Capt. Arjun Nair',
+        org: 'Meridian Marine Fleet Pte. Ltd.',
+        email: 'owner@meridian-marine.sg',
+        pass: 'Fleet@2026',
+        badge: 'Fleet Owner',
+        allowedViews: ['dashboard', 'vessels', 'map', 'orders', 'forecast', 'ports', 'scenario', 'report']
+      }
+    ];
+
+    /* ------------------------------------------------------------------------
+       C. COMPREHENSIVE REAL-WORLD GLOBAL & FINLAND PORT DATASET (UN/LOCODE)
+       ------------------------------------------------------------------------ */
+    const GLOBAL_PORTS = [
+      // Complete Finnish Ports Network (Real Coordinates & UN/LOCODEs)
+      { code: 'FIHEL', name: 'Port of Helsinki (Vuosaari)', country: 'Finland', region: 'Baltic Sea', lat: 60.209, lon: 25.174, maxDraft: 13.0, facilities: ['Container', 'Ro-Ro', 'Project Cargo', 'Ice-Class 1A'], status: 'Operational', congestion: 'Low (4h)' },
+      { code: 'FIKTK', name: 'Port of HaminaKotka', country: 'Finland', region: 'Baltic Sea', lat: 60.464, lon: 26.946, maxDraft: 15.3, facilities: ['Container', 'Dry Bulk', 'Liquid Bulk', 'Timber/Pulp', 'Ro-Ro'], status: 'Operational', congestion: 'Low (6h)' },
+      { code: 'FIHKO', name: 'Port of Hanko', country: 'Finland', region: 'Baltic Sea', lat: 59.823, lon: 22.968, maxDraft: 13.0, facilities: ['Ro-Ro', 'Automotive', 'Container', 'Year-Round Ice-Free'], status: 'Operational', congestion: 'Low (3h)' },
+      { code: 'FITKU', name: 'Port of Turku', country: 'Finland', region: 'Baltic Sea', lat: 60.435, lon: 22.221, maxDraft: 10.0, facilities: ['Ro-Ro', 'Container', 'Ferry/Passenger', 'Project Cargo'], status: 'Operational', congestion: 'Low (4h)' },
+      { code: 'FIRAU', name: 'Port of Rauma', country: 'Finland', region: 'Gulf of Bothnia', lat: 61.129, lon: 21.466, maxDraft: 12.0, facilities: ['Container', 'Timber/Pulp', 'Dry Bulk', 'Ro-Ro'], status: 'Operational', congestion: 'Low (5h)' },
+      { code: 'FIPOR', name: 'Port of Pori (Mäntyluoto & Tahkoluoto)', country: 'Finland', region: 'Gulf of Bothnia', lat: 61.595, lon: 21.465, maxDraft: 15.3, facilities: ['Deepwater Dry Bulk', 'Coal/Ore', 'Liquid Bulk', 'Heavy Lift'], status: 'Operational', congestion: 'Low (6h)' },
+      { code: 'FINLI', name: 'Port of Naantali', country: 'Finland', region: 'Baltic Sea', lat: 60.467, lon: 22.028, maxDraft: 13.0, facilities: ['Liquid Bulk', 'Grain Silos', 'Ro-Ro', 'Dry Bulk'], status: 'Operational', congestion: 'Low (4h)' },
+      { code: 'FIKOK', name: 'Port of Kokkola', country: 'Finland', region: 'Gulf of Bothnia', lat: 63.844, lon: 23.116, maxDraft: 14.2, facilities: ['All-Weather Dry Bulk', 'Ore/Concentrates', 'Liquid Bulk', 'Timber'], status: 'Operational', congestion: 'Low (5h)' },
+      { code: 'FIOUL', name: 'Port of Oulu', country: 'Finland', region: 'Bothnian Bay', lat: 65.004, lon: 25.432, maxDraft: 12.5, facilities: ['Container', 'Timber/Pulp', 'Dry Bulk', 'Liquid Bulk'], status: 'Ice-Breaker Assist', congestion: 'Moderate (10h)' },
+      { code: 'FIKEM', name: 'Port of Kemi (Ajos)', country: 'Finland', region: 'Bothnian Bay', lat: 65.672, lon: 24.536, maxDraft: 12.0, facilities: ['Pulp & Paper', 'Container', 'Dry Bulk', 'Liquid Bulk'], status: 'Ice-Breaker Assist', congestion: 'Low (6h)' },
+      { code: 'FITOR', name: 'Port of Tornio (Röyttä)', country: 'Finland', region: 'Bothnian Bay', lat: 65.806, lon: 24.155, maxDraft: 9.0, facilities: ['Stainless Steel', 'Ferrochrome Bulk', 'Container'], status: 'Ice-Breaker Assist', congestion: 'Low (5h)' },
+      { code: 'FIVAA', name: 'Port of Vaasa', country: 'Finland', region: 'Gulf of Bothnia', lat: 63.088, lon: 21.564, maxDraft: 9.0, facilities: ['Ro-Ro', 'Energy/Project Cargo', 'Dry Bulk', 'Liquid Bulk'], status: 'Operational', congestion: 'Low (4h)' },
+      { code: 'FIPRS', name: 'Port of Pietarsaari (Jakobstad)', country: 'Finland', region: 'Gulf of Bothnia', lat: 63.708, lon: 22.685, maxDraft: 11.0, facilities: ['Timber/Pulp', 'Dry Bulk', 'Liquid Bulk'], status: 'Operational', congestion: 'Low (4h)' },
+      { code: 'FIRAA', name: 'Port of Raahe', country: 'Finland', region: 'Bothnian Bay', lat: 64.666, lon: 24.426, maxDraft: 10.0, facilities: ['Steel Products', 'Iron Ore/Coal Bulk', 'Timber'], status: 'Operational', congestion: 'Low (5h)' },
+      { code: 'FIINK', name: 'Port of Inkoo', country: 'Finland', region: 'Gulf of Finland', lat: 60.032, lon: 23.968, maxDraft: 13.0, facilities: ['Dry Bulk', 'LNG Terminal', 'Timber'], status: 'Operational', congestion: 'Low (3h)' },
+      { code: 'FILOV', name: 'Port of Loviisa', country: 'Finland', region: 'Gulf of Finland', lat: 60.415, lon: 26.256, maxDraft: 9.5, facilities: ['Grain', 'Timber/Sawn Wood', 'Dry Bulk'], status: 'Operational', congestion: 'Low (4h)' },
+
+      // Major Global Hubs (India, China, Europe, SE Asia, Australia, Americas, Africa)
+      { code: 'INPRT', name: 'Paradip Port', country: 'India', region: 'Bay of Bengal', lat: 20.265, lon: 86.674, maxDraft: 14.5, facilities: ['Mechanized Iron Ore', 'Thermal Coal', 'Dry Bulk', 'Liquid Bulk'], status: 'Operational', congestion: 'Moderate (28h)' },
+      { code: 'INVTZ', name: 'Visakhapatnam Port', country: 'India', region: 'Bay of Bengal', lat: 17.686, lon: 83.285, maxDraft: 16.5, facilities: ['Deepwater Iron Ore', 'Container', 'Dry Bulk', 'Liquid Bulk'], status: 'Operational', congestion: 'Low (12h)' },
+      { code: 'INKRI', name: 'Krishnapatnam Port', country: 'India', region: 'Bay of Bengal', lat: 14.252, lon: 80.132, maxDraft: 16.0, facilities: ['Coal Terminal', 'Iron Ore', 'Container', 'Edible Oil'], status: 'Operational', congestion: 'Low (10h)' },
+      { code: 'INMAA', name: 'Chennai Port', country: 'India', region: 'Bay of Bengal', lat: 13.084, lon: 80.292, maxDraft: 15.0, facilities: ['Container', 'Ro-Ro Automotive', 'Dry Bulk', 'Liquid Bulk'], status: 'Operational', congestion: 'Low (14h)' },
+      { code: 'CNRZH', name: 'Port of Rizhao', country: 'China', region: 'Yellow Sea', lat: 35.385, lon: 119.552, maxDraft: 18.5, facilities: ['Capesize Iron Ore', 'Coal', 'Grain Silos', 'Container'], status: 'Operational', congestion: 'Low (11h)' },
+      { code: 'CNTAO', name: 'Port of Qingdao', country: 'China', region: 'Yellow Sea', lat: 36.067, lon: 120.382, maxDraft: 20.0, facilities: ['Automated Container', 'Iron Ore', 'Bauxite', 'Crude Oil'], status: 'Operational', congestion: 'Low (9h)' },
+      { code: 'CNSHA', name: 'Port of Shanghai (Yangshan)', country: 'China', region: 'East China Sea', lat: 30.626, lon: 122.065, maxDraft: 16.5, facilities: ['Mega Container', 'Dry Bulk', 'Ro-Ro', 'Breakbulk'], status: 'Operational', congestion: 'Moderate (18h)' },
+      { code: 'SGSIN', name: 'Port of Singapore', country: 'Singapore', region: 'Malacca Strait', lat: 1.264, lon: 103.822, maxDraft: 18.0, facilities: ['Transshipment Container', 'Bunkering Hub', 'Liquid Bulk'], status: 'Operational', congestion: 'Low (6h)' },
+      { code: 'NLRTM', name: 'Port of Rotterdam', country: 'Netherlands', region: 'North Sea', lat: 51.948, lon: 4.142, maxDraft: 22.0, facilities: ['Mega Container', 'Dry Bulk', 'Liquid Bulk', 'LNG'], status: 'Operational', congestion: 'Low (8h)' },
+      { code: 'DEHAM', name: 'Port of Hamburg', country: 'Germany', region: 'North Sea', lat: 53.541, lon: 9.968, maxDraft: 15.1, facilities: ['Container', 'Dry Bulk', 'Feeder Hub', 'Project Cargo'], status: 'Operational', congestion: 'Low (9h)' },
+      { code: 'ZARCB', name: 'Richards Bay Coal Terminal', country: 'South Africa', region: 'Indian Ocean', lat: -28.802, lon: 32.046, maxDraft: 17.5, facilities: ['Coal Export Terminal', 'Chrome/Manganese Bulk'], status: 'Operational', congestion: 'Low (12h)' },
+      { code: 'AUWEI', name: 'Port of Weipa', country: 'Australia', region: 'Gulf of Carpentaria', lat: -12.668, lon: 141.862, maxDraft: 13.8, facilities: ['Bauxite Export Berths', 'Bulk Conveyor'], status: 'Operational', congestion: 'Low (8h)' },
+      { code: 'AUPHE', name: 'Port Hedland', country: 'Australia', region: 'Indian Ocean', lat: -20.312, lon: 118.576, maxDraft: 19.5, facilities: ['Capesize Iron Ore', 'Salt/Manganese Bulk'], status: 'Operational', congestion: 'Moderate (20h)' },
+      { code: 'KRPUS', name: 'Port of Busan', country: 'South Korea', region: 'Korea Strait', lat: 35.104, lon: 129.042, maxDraft: 17.0, facilities: ['Mega Container', 'Transshipment', 'Dry Bulk'], status: 'Operational', congestion: 'Low (7h)' },
+      { code: 'BRSSZ', name: 'Port of Santos', country: 'Brazil', region: 'South Atlantic', lat: -23.956, lon: -46.312, maxDraft: 14.5, facilities: ['Grain/Soy Bulk', 'Sugar', 'Container', 'Liquid Bulk'], status: 'Operational', congestion: 'Moderate (24h)' }
+    ];
+
+    /* ------------------------------------------------------------------------
+       D. GLOBAL REACTIVE APPLICATION STATE
+       ------------------------------------------------------------------------ */
+    const STATE = {
+      currentUser: null, // null forces Role Login Screen on startup
+      activeView: 'dashboard',
+      activeShipmentId: 'FQ-2611',
+      mapTileMode: 'nautical', // 'nautical' | 'satellite' | 'dark'
+      mapShowWeather: true,
+      mapShowRoutes: true,
+      focusedPortCode: 'FIHEL',
+      tutorialOpen: false,
+      tutorialStep: 0,
+
+      users: [...ROLE_ACCOUNTS.map((a, i) => ({
+        id: 'U-' + (101 + i),
+        name: a.name,
+        email: a.email,
+        role: a.role,
+        org: a.org,
+        active: true
+      }))],
+
+      vessels: [
+        {
+          id: 'v1',
+          name: 'MV Pacific Meridian',
+          imo: '9894120',
+          type: 'Ultramax',
+          dwt: 63500,
+          capacityMt: 60200,
+          built: 2021,
+          draft: 13.0,
+          beam: 32.26,
+          geared: true,
+          gearSpec: '4x30t + Grabs',
+          availability: 'Available',
+          currentLocation: 'Visakhapatnam Roads, India',
+          destination: 'Paradip → Rizhao',
+          rate: 16.40,
+          ballastDays: 1.4,
+          rating: 4.8,
+          lat: 18.85,
+          lon: 85.10,
+          sog: 13.6,
+          cog: 42,
+          eta: 'Dec 09, 14:00 UTC',
+          progressPct: 18,
+          waypoints: [[17.68, 83.28], [20.26, 86.67], [11.40, 92.15], [3.85, 99.40], [1.26, 103.82], [12.60, 112.80], [23.40, 119.50], [35.38, 119.55]]
+        },
+        {
+          id: 'v2',
+          name: 'MV Nordic Horizon',
+          imo: '9832045',
+          type: 'Ultramax',
+          dwt: 61200,
+          capacityMt: 58000,
+          built: 2019,
+          draft: 12.8,
+          beam: 32.26,
+          geared: true,
+          gearSpec: '4x35t',
+          availability: 'On Charter',
+          currentLocation: 'Bay of Bengal (South)',
+          destination: 'Krishnapatnam, India',
+          rate: 15.95,
+          ballastDays: 1.8,
+          rating: 4.6,
+          lat: 8.40,
+          lon: 81.90,
+          sog: 13.2,
+          cog: 15,
+          eta: 'Nov 24, 08:30 UTC',
+          progressPct: 68,
+          waypoints: [[-28.80, 32.04], [-10.0, 62.0], [6.10, 80.10], [14.25, 80.13]]
+        },
+        {
+          id: 'v3',
+          name: 'MV Bothnia Icebreaker',
+          imo: '9914208',
+          type: 'Ice-Class Handysize',
+          dwt: 38500,
+          capacityMt: 36200,
+          built: 2022,
+          draft: 10.6,
+          beam: 28.40,
+          geared: true,
+          gearSpec: '4x30t Ice-1A Super',
+          availability: 'Available',
+          currentLocation: 'Port of Helsinki, Finland',
+          destination: 'HaminaKotka → Rotterdam',
+          rate: 21.50,
+          ballastDays: 0.6,
+          rating: 4.9,
+          lat: 60.12,
+          lon: 25.35,
+          sog: 12.8,
+          cog: 88,
+          eta: 'Nov 25, 16:00 UTC',
+          progressPct: 24,
+          waypoints: [[60.20, 25.17], [60.46, 26.94], [59.50, 21.00], [55.20, 14.50], [54.20, 8.10], [51.94, 4.14]]
+        },
+        {
+          id: 'v4',
+          name: 'MV Finnpulp Express',
+          imo: '9876541',
+          type: 'Ro-Ro / Timber Carrier',
+          dwt: 24800,
+          capacityMt: 22500,
+          built: 2020,
+          draft: 9.4,
+          beam: 26.20,
+          geared: true,
+          gearSpec: 'Side-Loader + 2x40t',
+          availability: 'Available',
+          currentLocation: 'Port of Rauma, Finland',
+          destination: 'Kokkola → Hamburg',
+          rate: 24.20,
+          ballastDays: 1.1,
+          rating: 4.7,
+          lat: 61.85,
+          lon: 21.15,
+          sog: 14.4,
+          cog: 12,
+          eta: 'Nov 23, 11:30 UTC',
+          progressPct: 45,
+          waypoints: [[61.12, 21.46], [63.84, 23.11], [58.50, 19.50], [54.50, 10.20], [53.54, 9.96]]
+        },
+        {
+          id: 'v5',
+          name: 'MV Stella Maris',
+          imo: '9918432',
+          type: 'Ultramax',
+          dwt: 64000,
+          capacityMt: 61500,
+          built: 2022,
+          draft: 13.1,
+          beam: 32.30,
+          geared: true,
+          gearSpec: '4x30t + Scrubber',
+          availability: 'On Charter',
+          currentLocation: 'Coral Sea North',
+          destination: 'Qingdao, China',
+          rate: 17.10,
+          ballastDays: 2.2,
+          rating: 4.9,
+          lat: -2.40,
+          lon: 133.50,
+          sog: 14.1,
+          cog: 342,
+          eta: 'Dec 01, 19:00 UTC',
+          progressPct: 32,
+          waypoints: [[-12.66, 141.86], [2.10, 131.40], [21.50, 122.10], [36.06, 120.38]]
+        },
+        {
+          id: 'v6',
+          name: 'MV Eastern Vanguard',
+          imo: '9861108',
+          type: 'Panamax',
+          dwt: 76000,
+          capacityMt: 72500,
+          built: 2020,
+          draft: 14.1,
+          beam: 32.26,
+          geared: false,
+          gearSpec: 'Gearless',
+          availability: 'Available',
+          currentLocation: 'Singapore Eastern Anch.',
+          destination: 'Paradip / Port Hedland',
+          rate: 14.80,
+          ballastDays: 3.4,
+          rating: 4.5,
+          lat: 1.28,
+          lon: 103.95,
+          sog: 13.9,
+          cog: 305,
+          eta: 'Nov 24, 19:45 UTC',
+          progressPct: 10,
+          waypoints: [[1.26, 103.82], [5.45, 97.20], [13.10, 90.80], [20.26, 86.67]]
+        }
+      ],
+
+      shipments: [
+        {
+          id: 'FQ-2611',
+          direction: 'Export',
+          cargo: 'Iron Ore Fines (62% Fe)',
+          quantity: 58000,
+          originCode: 'INPRT',
+          destCode: 'CNRZH',
+          vesselId: 'v1',
+          rate: 16.40,
+          laycanStart: '2026-11-24',
+          laycanEnd: '2026-11-29',
+          stage: 'Vessel Selected',
+          progressPct: 18,
+          eta: 'Dec 09, 14:00 UTC',
+          bookedBy: 'Exporter Desk'
+        },
+        {
+          id: 'FQ-2612',
+          direction: 'Export',
+          cargo: 'Kraft Pulp & Sawn Timber',
+          quantity: 28000,
+          originCode: 'FIKTK',
+          destCode: 'NLRTM',
+          vesselId: 'v3',
+          rate: 21.50,
+          laycanStart: '2026-11-21',
+          laycanEnd: '2026-11-25',
+          stage: 'In Transit',
+          progressPct: 42,
+          eta: 'Nov 25, 16:00 UTC',
+          bookedBy: 'Aino Virtanen (Exporter)'
+        },
+        {
+          id: 'FQ-2610',
+          direction: 'Import',
+          cargo: 'Thermal Coal (5,500 NAR)',
+          quantity: 52000,
+          originCode: 'ZARCB',
+          destCode: 'INKRI',
+          vesselId: 'v2',
+          rate: 15.95,
+          laycanStart: '2026-11-12',
+          laycanEnd: '2026-11-16',
+          stage: 'In Transit',
+          progressPct: 68,
+          eta: 'Nov 24, 08:30 UTC',
+          bookedBy: 'Importer Desk'
+        },
+        {
+          id: 'FQ-2609',
+          direction: 'Import',
+          cargo: 'Metallurgical Bauxite',
+          quantity: 61500,
+          originCode: 'AUWEI',
+          destCode: 'CNTAO',
+          vesselId: 'v5',
+          rate: 17.10,
+          laycanStart: '2026-11-18',
+          laycanEnd: '2026-11-22',
+          stage: 'Loading',
+          progressPct: 32,
+          eta: 'Dec 01, 19:00 UTC',
+          bookedBy: 'Wei Chen (Importer)'
+        }
+      ],
+
+      auditLogs: [
+        { time: '14:28 UTC', actor: 'System AIS Bridge', role: 'Telemetry', action: 'Ingested 6 live vessel positions (Baltic & Indian Ocean sectors)' },
+        { time: '14:15 UTC', actor: 'Aino Virtanen', role: 'Exporter', action: 'Verified Ice-Class 1A berth availability at Port of HaminaKotka (FIKTK)' },
+        { time: '13:52 UTC', actor: 'Wei Chen', role: 'Importer', action: 'Requested AI freight forecast for Paradip (INPRT) → Rizhao (CNRZH)' },
+        { time: '13:30 UTC', actor: 'Capt. Arjun Nair', role: 'Ship Owner', action: 'Published spot charter availability for MV Pacific Meridian ($16.40/MT)' }
+      ],
+
+      // Interactive Filters & Form States
+      portSearch: '',
+      portCountryFilter: 'All',
+      portFacilityFilter: 'All',
+
+      vesselSearch: '',
+      vesselTypeFilter: 'All',
+      vesselAvailFilter: 'All',
+
+      bookingForm: {
+        direction: 'Export',
+        originCode: 'FIKTK',
+        destCode: 'NLRTM',
+        cargo: 'Kraft Pulp & Sawn Timber',
+        quantity: 28000,
+        laycanStart: '2026-11-26',
+        laycanEnd: '2026-12-01',
+        selectedVesselId: 'v3'
+      },
+
+      forecastForm: {
+        originCode: 'INPRT',
+        destCode: 'CNRZH',
+        cargo: 'Iron Ore Fines',
+        quantity: 58000,
+        horizonDays: 30,
+        fuelPrice: 585
+      },
+
+      scenario: {
+        waitDays: 5,
+        rateDriftPct: 6.5,
+        demurrageRate: 17000,
+        congestionSurge: true
+      },
+
+      tracking: {
+        playing: true,
+        speed: 5,
+        simTimeMs: new Date('2026-11-19T09:04:00Z').getTime(),
+        selectedVesselId: 'v1'
+      },
+
+      aiDrawer: {
+        open: false,
+        messages: [
+          {
+            role: 'bot',
+            text: 'Welcome to **FreightIQ Maritime Intelligence**. I can help you search global & **Finland ports**, track **live AIS vessels**, forecast **freight rates**, or book an **Import/Export** cargo stem.',
+            actions: [
+              { label: '→ Search Finland Ports', view: 'ports' },
+              { label: '→ Open Satellite Map', view: 'map' },
+              { label: '→ AI Freight Forecast', view: 'forecast' }
+            ]
+          }
+        ]
+      }
+    };
+
+    /* ------------------------------------------------------------------------
+       E. TUTORIAL MODAL CONTROLS & KEYBOARD NAVIGATION
+       ------------------------------------------------------------------------ */
+    function openTutorialModal(stepIdx = 0) {
+      STATE.tutorialOpen = true;
+      STATE.tutorialStep = Math.max(0, Math.min(TUTORIAL_STEPS.length - 1, stepIdx));
+      renderTutorialModal();
+      document.getElementById('tutorialModalOverlay').classList.add('open');
+    }
+
+    function closeTutorialModal() {
+      STATE.tutorialOpen = false;
+      document.getElementById('tutorialModalOverlay').classList.remove('open');
+    }
+
+    function setTutorialStep(idx) {
+      STATE.tutorialStep = Math.max(0, Math.min(TUTORIAL_STEPS.length - 1, idx));
+      renderTutorialModal();
+    }
+
+    function tutorialJumpToFeature(viewId) {
+      closeTutorialModal();
+      // If triggered from Login screen before authenticating, auto-sign in as Admin so the feature opens immediately
+      if (!STATE.currentUser) {
+        STATE.currentUser = ROLE_ACCOUNTS[0];
+        document.getElementById('loginOverlay').classList.add('hidden');
+        logAudit(STATE.currentUser.name, STATE.currentUser.role, 'Launched workspace via Interactive Tutorial');
+      }
+      // Ensure current role has permission for targetView; if not, switch to Admin
+      if (!STATE.currentUser.allowedViews.includes(viewId)) {
+        STATE.currentUser = ROLE_ACCOUNTS[0];
+      }
+      navigateTo(viewId);
+      showToast(`Opened ${viewId.toUpperCase()} module from Tutorial`);
+    }
+
+    function renderTutorialModal() {
+      const step = TUTORIAL_STEPS[STATE.tutorialStep];
+      const isFirst = STATE.tutorialStep === 0;
+      const isLast = STATE.tutorialStep === TUTORIAL_STEPS.length - 1;
+
+      document.getElementById('tutorialModalCard').innerHTML = `
+        <div class="tutorial-modal-header">
+          <div>
+            <div class="tutorial-step-pill">✦ ${step.badge}</div>
+            <h2 id="tutorialModalTitle" style="font-size: 1.35rem; font-weight: 800; color: #ffffff;">${step.title}</h2>
+          </div>
+          <button type="button" class="sidebar-btn" style="flex: 0 0 auto; padding: 6px 11px; border-color: rgba(255,255,255,0.28); color: #ffffff;" onclick="closeTutorialModal()" aria-label="Close Tutorial">✕</button>
+        </div>
+
+        <div class="tutorial-modal-body">
+          <p style="margin: 0; font-size: 14px; color: var(--ink-muted); line-height: 1.6;">
+            ${step.summary}
+          </p>
+
+          <ul class="tutorial-feature-list">
+            ${step.bullets.map(b => `
+              <li class="tutorial-feature-item">
+                <span class="tutorial-feature-bullet">${b.code}</span>
+                <span>${b.text}</span>
+              </li>
+            `).join('')}
+          </ul>
+
+          <div class="tutorial-tip-box">
+            <div><strong>Pro Tip:</strong> ${step.tip}</div>
+            <button type="button" class="btn btn-sm btn-primary" onclick="tutorialJumpToFeature('${step.targetView}')">${step.targetLabel}</button>
+          </div>
+        </div>
+
+        <div class="tutorial-modal-footer">
+          <div class="tutorial-dots">
+            ${TUTORIAL_STEPS.map((_, idx) => `
+              <button type="button" class="tutorial-dot ${idx === STATE.tutorialStep ? 'active' : ''}" onclick="setTutorialStep(${idx})" aria-label="Go to step ${idx + 1}"></button>
+            `).join('')}
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" class="btn btn-sm" onclick="closeTutorialModal()">Skip</button>
+            ${!isFirst ? `<button type="button" class="btn btn-sm" onclick="setTutorialStep(${STATE.tutorialStep - 1})">← Previous</button>` : ''}
+            ${!isLast
+              ? `<button type="button" class="btn btn-sm btn-cyan" onclick="setTutorialStep(${STATE.tutorialStep + 1})">Next Step →</button>`
+              : `<button type="button" class="btn btn-sm btn-primary" onclick="closeTutorialModal()">Finish Guide ✓</button>`
+            }
+          </div>
+        </div>
+      `;
+    }
+
+    // Keyboard shortcuts when tutorial modal is open (Escape, ArrowRight, ArrowLeft)
+    window.addEventListener('keydown', (e) => {
+      if (!STATE.tutorialOpen) return;
+      if (e.key === 'Escape') closeTutorialModal();
+      else if (e.key === 'ArrowRight' && STATE.tutorialStep < TUTORIAL_STEPS.length - 1) setTutorialStep(STATE.tutorialStep + 1);
+      else if (e.key === 'ArrowLeft' && STATE.tutorialStep > 0) setTutorialStep(STATE.tutorialStep - 1);
+    });
+
+    /* ------------------------------------------------------------------------
+       F. HELPER CALCULATIONS (HAVERSINE DISTANCE, PORTS, VESSELS, THEME)
+       ------------------------------------------------------------------------ */
+    function getPortByCode(code) {
+      return GLOBAL_PORTS.find(p => p.code === code) || GLOBAL_PORTS[0];
+    }
+
+    function getVesselById(id) {
+      return STATE.vessels.find(v => v.id === id) || STATE.vessels[0];
+    }
+
+    function getActiveShipment() {
+      return STATE.shipments.find(s => s.id === STATE.activeShipmentId) || STATE.shipments[0];
+    }
+
+    // Real Great-Circle Haversine Nautical Miles + 1.22x Maritime Routing Factor
+    function computeMaritimeDistanceNm(p1, p2) {
+      const toRad = deg => deg * Math.PI / 180;
+      const R = 3440.065; // Earth radius in Nautical Miles
+      const dLat = toRad(p2.lat - p1.lat);
+      const dLon = toRad(p2.lon - p1.lon);
+      const a = Math.sin(dLat / 2) ** 2 +
+                Math.cos(toRad(p1.lat)) * Math.cos(toRad(p2.lat)) * Math.sin(dLon / 2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const directNm = R * c;
+      return Math.max(240, Math.round(directNm * 1.22));
+    }
+
+    function formatCurrency(val) { return '$' + Math.round(val).toLocaleString('en-US'); }
+    function formatNumber(val) { return Math.round(val).toLocaleString('en-US'); }
+
+    function logAudit(actor, role, action) {
+      const now = new Date().toISOString().slice(11, 16) + ' UTC';
+      STATE.auditLogs.unshift({ time: now, actor, role, action });
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById('toastBanner');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+    }
+
+    function toggleTheme() {
+      const cur = document.documentElement.getAttribute('data-theme');
+      const next = cur === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      const btn = document.getElementById('themeToggleBtn');
+      if (btn) btn.textContent = next === 'dark' ? '☀ Light' : '☾ Dark';
+      showToast(`Switched to ${next.toUpperCase()} maritime mode`);
+    }
+
+    /* ------------------------------------------------------------------------
+       G. ROLE-BASED AUTHENTICATION & LOGIN HANDLERS
+       ------------------------------------------------------------------------ */
+    function initLoginScreen() {
+      const grid = document.getElementById('rolePresetGrid');
+      grid.innerHTML = ROLE_ACCOUNTS.map((acc, idx) => `
+        <button type="button" class="role-preset-btn ${idx === 0 ? 'active' : ''}" onclick="fillPresetRole('${acc.role}')">
+          <div style="font-weight: 800; font-size: 12.5px; color: #07192c;">${acc.role}</div>
+          <div style="font-size: 11px; color: #0891b2; font-family: var(--font-mono);">${acc.email}</div>
+        </button>
+      `).join('');
+      fillPresetRole('Admin');
+    }
+
+    function fillPresetRole(roleName) {
+      const acc = ROLE_ACCOUNTS.find(a => a.role === roleName) || ROLE_ACCOUNTS[0];
+      document.getElementById('loginRoleSelect').value = acc.role;
+      document.getElementById('loginEmailInput').value = acc.email;
+      document.getElementById('loginPassInput').value = acc.pass;
+      document.getElementById('loginErrorBox').style.display = 'none';
+
+      document.querySelectorAll('.role-preset-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.includes(acc.role));
+      });
+    }
+
+    function handleLoginSubmit(e) {
+      e.preventDefault();
+      const role = document.getElementById('loginRoleSelect').value;
+      const email = document.getElementById('loginEmailInput').value.trim().toLowerCase();
+      const pass = document.getElementById('loginPassInput').value;
+
+      const matched = ROLE_ACCOUNTS.find(a => a.role === role && a.email.toLowerCase() === email && a.pass === pass);
+      const errBox = document.getElementById('loginErrorBox');
+
+      if (!matched) {
+        errBox.style.display = 'block';
+        errBox.textContent = 'Invalid credentials for selected role. Click a role preset button above to auto-fill verified credentials.';
+        return;
+      }
+
+      errBox.style.display = 'none';
+      STATE.currentUser = matched;
+
+      // Tailor default active view by Role
+      if (matched.role === 'Admin') STATE.activeView = 'admin';
+      else if (matched.role === 'Exporter') STATE.activeView = 'booking';
+      else if (matched.role === 'Importer') STATE.activeView = 'map';
+      else if (matched.role === 'Ship Owner') STATE.activeView = 'vessels';
+
+      document.getElementById('loginOverlay').classList.add('hidden');
+      logAudit(matched.name, matched.role, `Authenticated into ${matched.badge} workspace`);
+      renderApp();
+      showToast(`Welcome, ${matched.name} (${matched.role})`);
+    }
+
+    function openLoginModal() {
+      document.getElementById('loginOverlay').classList.remove('hidden');
+    }
+
+    /* ------------------------------------------------------------------------
+       H. NAVIGATION & SHELL RENDERING (ROLE-AWARE)
+       ------------------------------------------------------------------------ */
+    const ALL_NAV_ITEMS = [
+      { id: 'dashboard', label: 'Role Dashboard', section: 'Command Center' },
+      { id: 'map', label: 'Interactive & Satellite Map', section: 'Live Intelligence', badgeFn: () => 'LIVE' },
+      { id: 'ports', label: 'Global & Finland Ports', section: 'Live Intelligence', badgeFn: () => GLOBAL_PORTS.length },
+      { id: 'vessels', label: 'Vessel Search & Fleet', section: 'Live Intelligence', badgeFn: () => STATE.vessels.length },
+      { id: 'booking', label: 'Import / Export Booking', section: 'Chartering & AI' },
+      { id: 'forecast', label: 'AI Freight Forecasting', section: 'Chartering & AI', badgeFn: () => 'AI' },
+      { id: 'scenario', label: 'Scenario Simulator', section: 'Chartering & AI' },
+      { id: 'orders', label: 'Bookings & Orders Ledger', section: 'Operations', badgeFn: () => STATE.shipments.length },
+      { id: 'report', label: 'Executive Decision Report', section: 'Operations' },
+      { id: 'admin', label: 'Admin Control Center', section: 'Administration', adminOnly: true }
+    ];
+
+    function renderNavigation() {
+      const user = STATE.currentUser || ROLE_ACCOUNTS[0];
+
+      // User profile card in sidebar
+      document.getElementById('sidebarUserCard').innerHTML = `
+        <div style="min-width: 0;">
+          <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #22d3ee;">${user.role}</div>
+          <div style="font-weight: 700; font-size: 13px; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${user.name}</div>
+          <div style="font-size: 11px; color: #94b3ce; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${user.org}</div>
+        </div>
+        <span class="badge inf" style="font-size: 10px;">Active</span>
+      `;
+
+      // Shipment switcher
+      const switcher = document.getElementById('shipmentSwitcher');
+      switcher.innerHTML = STATE.shipments.map(s => {
+        const op = getPortByCode(s.originCode);
+        const dp = getPortByCode(s.destCode);
+        return `<option value="${s.id}" ${s.id === STATE.activeShipmentId ? 'selected' : ''}>${s.id} • ${op.code} → ${dp.code}</option>`;
+      }).join('');
+
+      const activeShip = getActiveShipment();
+      document.getElementById('contextStagePill').textContent = activeShip.stage;
+      document.getElementById('topbarRoleBadge').textContent = `${user.role.toUpperCase()} PORTAL`;
+      document.getElementById('topbarShipmentRef').textContent = `${activeShip.id} (${activeShip.direction})`;
+
+      // Filter nav items by role permissions
+      const visibleNav = ALL_NAV_ITEMS.filter(item => user.allowedViews.includes(item.id));
+      let lastSection = '';
+      let html = '';
+
+      visibleNav.forEach(item => {
+        if (item.section !== lastSection) {
+          html += `<div class="nav-section-label">${item.section}</div>`;
+          lastSection = item.section;
+        }
+        const isActive = STATE.activeView === item.id;
+        const badge = item.badgeFn ? item.badgeFn() : null;
+        html += `
+          <button class="nav-item ${isActive ? 'active' : ''}" onclick="navigateTo('${item.id}')">
+            <span class="nav-item-left">
+              <span>${item.label}</span>
+            </span>
+            ${badge !== null ? `<span class="nav-pill">${badge}</span>` : ''}
+          </button>
+        `;
+      });
+
+      document.getElementById('sidebarNav').innerHTML = html;
+    }
+
+    function switchShipment(id) {
+      STATE.activeShipmentId = id;
+      renderApp();
+      showToast(`Active fixture switched to ${id}`);
+    }
+
+    function navigateTo(viewId, opts = {}) {
+      if (opts.vesselId) STATE.tracking.selectedVesselId = opts.vesselId;
+      if (opts.portCode) STATE.focusedPortCode = opts.portCode;
+      STATE.activeView = viewId;
+      renderApp();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderApp() {
+      renderNavigation();
+      updateAiContextUI();
+
+      const titles = {
+        dashboard: 'Role-Based Maritime Operations Dashboard',
+        map: 'Interactive Maritime Map & Satellite View (AIS Live)',
+        ports: 'Global & Finland Port Directory',
+        vessels: 'Global Vessel Registry & Charter Search',
+        booking: 'Import / Export Freight Booking Engine',
+        forecast: 'AI Freight Forecasting & Vessel Recommendation',
+        scenario: 'Chartering Timing & Congestion Simulator',
+        orders: 'Import / Export Bookings & Voyages Ledger',
+        report: 'Executive Fixture Decision Memorandum',
+        admin: 'Platform Admin Control Center'
+      };
+
+      document.getElementById('topbarViewTitle').textContent = titles[STATE.activeView] || 'FreightIQ';
+
+      // Data Provenance Indicator + Quick Actions + Small Square Tutorial Box in Topbar
+      document.getElementById('topbarActions').innerHTML = `
+        <span class="badge live-tag" title="Esri World Imagery, OpenStreetMap & UN/LOCODE Port Coordinates"><span class="badge-dot"></span>REAL MAP & PORTS</span>
+        <span class="badge sim-tag" title="Simulated live AIS ship movement, spot quotes & AI forecasts"><span class="badge-dot"></span>SIMULATED AIS & AI</span>
+        <button class="btn btn-sm btn-primary" onclick="navigateTo('booking')">+ Book Cargo</button>
+        <button type="button" class="tutorial-square-btn" onclick="openTutorialModal(0)" title="Interactive Platform Tutorial" aria-label="Interactive Platform Tutorial">
+          <span class="tut-q-icon">?</span>
+          <span class="tut-q-label">Guide</span>
+        </button>
+      `;
+
+      // Destroy previous Leaflet map instance if leaving map view
+      if (STATE.activeView !== 'map' && window._leafletMap) {
+        window._leafletMap.remove();
+        window._leafletMap = null;
+      }
+
+      const container = document.getElementById('viewContainer');
+      switch (STATE.activeView) {
+        case 'dashboard': container.innerHTML = renderDashboardView(); break;
+        case 'map': container.innerHTML = renderMapView(); setTimeout(initLeafletMap, 30); break;
+        case 'ports': container.innerHTML = renderPortsView(); break;
+        case 'vessels': container.innerHTML = renderVesselsView(); break;
+        case 'booking': container.innerHTML = renderBookingView(); break;
+        case 'forecast': container.innerHTML = renderForecastView(); break;
+        case 'scenario': container.innerHTML = renderScenarioView(); break;
+        case 'orders': container.innerHTML = renderOrdersView(); break;
+        case 'report': container.innerHTML = renderReportView(); break;
+        case 'admin': container.innerHTML = renderAdminView(); break;
+      }
+    }
+
+    /* ------------------------------------------------------------------------
+       I. VIEW 1: ROLE-SPECIFIC OPERATIONS DASHBOARD
+       ------------------------------------------------------------------------ */
+    function renderDashboardView() {
+      const user = STATE.currentUser || ROLE_ACCOUNTS[0];
+      const ship = getActiveShipment();
+      const orig = getPortByCode(ship.originCode);
+      const dest = getPortByCode(ship.destCode);
+      const finlandPortsCount = GLOBAL_PORTS.filter(p => p.country === 'Finland').length;
+      const availVessels = STATE.vessels.filter(v => v.availability === 'Available').length;
+
+      const roleHero = {
+        Admin: {
+          kicker: 'SYSTEM ADMINISTRATOR OVERVIEW',
+          title: `Platform Health Nominal • ${GLOBAL_PORTS.length} Global Ports (${finlandPortsCount} Finland) & ${STATE.vessels.length} Tracked Vessels`,
+          desc: 'Full administrative oversight across Exporter, Importer, and Ship Owner portals. Monitor live AIS telemetry feeds, approve fixtures, and manage port/fleet master registries.',
+          cta1: { label: 'Open Admin Control Center', view: 'admin' },
+          cta2: { label: 'Launch Satellite AIS Map', view: 'map' }
+        },
+        Exporter: {
+          kicker: 'EXPORTER CHARTERING DESK • NORDIC & GLOBAL',
+          title: `Ready to Book Export Cargo: ${availVessels} Vessels Available Including Ice-Class Baltic Tonnage`,
+          desc: 'Compare export port terminal readiness across Finland (Helsinki, HaminaKotka, Rauma, Oulu) and global hubs, run AI freight forecasts, and lock vessel charters.',
+          cta1: { label: 'Create Export Booking', view: 'booking' },
+          cta2: { label: 'Explore Finland Ports', view: 'ports' }
+        },
+        Importer: {
+          kicker: 'IMPORTER SUPPLY CHAIN & INBOUND TRACKING',
+          title: `Tracking ${STATE.shipments.length} Active Inbound & Cross-Trade Voyages`,
+          desc: 'Monitor real-time AIS arrival ETAs, discharge berth congestion, and AI rate forecasts for incoming raw materials and bulk shipments.',
+          cta1: { label: 'Track Live Vessels on Satellite', view: 'map' },
+          cta2: { label: 'Request Import Booking', view: 'booking' }
+        },
+        'Ship Owner': {
+          kicker: 'SHIP OWNER FLEET & CHARTER DESK',
+          title: `Fleet Utilization 67% • ${availVessels} Open Vessels Ready for Spot or Time Charter`,
+          desc: 'Monitor live AIS speed/fuel telemetry across your fleet, review incoming Exporter/Importer booking stems, and benchmark spot charter rates.',
+          cta1: { label: 'Manage Fleet & Rates', view: 'vessels' },
+          cta2: { label: 'Review Incoming Bookings', view: 'orders' }
+        }
+      }[user.role];
+
+      return `
+        <section class="hero-banner">
+          <div>
+            <div class="hero-kicker">✦ ${roleHero.kicker}</div>
+            <h2 class="hero-title">${roleHero.title}</h2>
+            <p class="hero-desc">${roleHero.desc}</p>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn" style="background: #ffffff; color: #07192c; border-color: #ffffff;" onclick="navigateTo('${roleHero.cta1.view}')">${roleHero.cta1.label}</button>
+            <button class="btn" style="background: rgba(6,182,212,0.22); color: #ffffff; border-color: rgba(34,211,238,0.45);" onclick="navigateTo('${roleHero.cta2.view}')">${roleHero.cta2.label}</button>
+          </div>
+        </section>
+
+        <!-- 4 Maritime KPI Cards -->
+        <section class="grid-4" style="margin-bottom: 20px;">
+          <div class="card kpi-card">
+            <div class="kpi-label"><span>Active Fixture Est. Freight</span><span class="badge sim-tag">SIMULATED</span></div>
+            <div class="kpi-value num">${formatCurrency(ship.quantity * ship.rate)}</div>
+            <div class="kpi-foot"><span class="mono">$${ship.rate.toFixed(2)}/MT</span> • ${orig.name} → ${dest.name}</div>
+          </div>
+
+          <div class="card kpi-card">
+            <div class="kpi-label"><span>Global & Finland Ports</span><span class="badge live-tag">UN/LOCODE</span></div>
+            <div class="kpi-value num">${GLOBAL_PORTS.length} Ports</div>
+            <div class="kpi-foot">Includes <strong>${finlandPortsCount} Finnish ports</strong> with live coordinates</div>
+          </div>
+
+          <div class="card kpi-card">
+            <div class="kpi-label"><span>Fleet Availability</span><span class="badge ok">${availVessels} Open</span></div>
+            <div class="kpi-value num">${availVessels} / ${STATE.vessels.length}</div>
+            <div class="kpi-foot">Ultramax, Panamax & Ice-Class 1A tonnage</div>
+          </div>
+
+          <div class="card kpi-card">
+            <div class="kpi-label"><span>AI Spot Market Index</span><span class="badge inf">+4.2% 30d</span></div>
+            <div class="kpi-value num">$17.85/MT</div>
+            <div class="kpi-foot">Baltic & Indo-Pacific composite dry bulk forecast</div>
+          </div>
+        </section>
+
+        <section class="grid-2">
+          <!-- Active Bookings & Shipments -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Active Import / Export Bookings</h3>
+                <div class="card-subtitle">Click any booking to inspect route, vessel & ETA</div>
+              </div>
+              <button class="btn btn-sm" onclick="navigateTo('orders')">Full Ledger →</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Ref / Type</th><th>Corridor</th><th>Vessel</th><th>Stage</th></tr>
+                </thead>
+                <tbody>
+                  ${STATE.shipments.map(s => {
+                    const op = getPortByCode(s.originCode);
+                    const dp = getPortByCode(s.destCode);
+                    const v = getVesselById(s.vesselId);
+                    return `
+                      <tr style="cursor: pointer;" onclick="switchShipment('${s.id}')">
+                        <td>
+                          <div class="mono" style="font-weight: 700; color: var(--cyan);">${s.id}</div>
+                          <span class="badge ${s.direction === 'Export' ? 'inf' : 'rev'}" style="font-size: 10px;">${s.direction}</span>
+                        </td>
+                        <td>
+                          <div style="font-weight: 600;">${op.name} → ${dp.name}</div>
+                          <div style="font-size: 11.5px; color: var(--ink-muted);">${formatNumber(s.quantity)} MT ${s.cargo}</div>
+                        </td>
+                        <td style="font-size: 12.5px;">${v.name}</td>
+                        <td><span class="badge ok">${s.stage}</span></td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Live AIS Fleet Snapshot -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Live AIS Vessel Telemetry</h3>
+                <div class="card-subtitle">Real-time simulated positions across Baltic & Indo-Pacific</div>
+              </div>
+              <button class="btn btn-sm btn-cyan" onclick="navigateTo('map')">Satellite Map →</button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              ${STATE.vessels.slice(0, 4).map(v => `
+                <div style="padding: 10px 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surf-alt);">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <div>
+                      <strong>${v.name}</strong>
+                      <span class="mono" style="font-size: 11px; color: var(--ink-muted); margin-left: 6px;">IMO ${v.imo}</span>
+                    </div>
+                    <button class="btn btn-sm" onclick="navigateTo('map', { vesselId: '${v.id}' })">Track on Map</button>
+                  </div>
+                  <div style="font-size: 12px; color: var(--ink-muted); margin-bottom: 6px;">
+                    ${v.currentLocation} → <strong>${v.destination}</strong>
+                  </div>
+                  <div class="progress-track" style="margin-bottom: 5px;">
+                    <div class="progress-fill" style="width: ${v.progressPct}%;"></div>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 11px;" class="mono">
+                    <span>${v.lat.toFixed(2)}°N, ${v.lon.toFixed(2)}°E • ${v.sog} kn</span>
+                    <span>ETA: ${v.eta} (${v.progressPct}%)</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </section>
+      `;
+    }
+
+    /* ------------------------------------------------------------------------
+       J. VIEW 2: INTERACTIVE LEAFLET MAP + SATELLITE VIEW + LIVE AIS TRACKING
+       ------------------------------------------------------------------------ */
+    function renderMapView() {
+      const selVessel = getVesselById(STATE.tracking.selectedVesselId);
+      const utcStr = new Date(STATE.tracking.simTimeMs).toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+
+      return `
+        <!-- Map Layer Switcher & AIS Simulation Toolbar -->
+        <div class="card" style="margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--ink-muted);">Map Layer:</span>
+            <div class="pill-group">
+              <button class="filter-pill ${STATE.mapTileMode === 'nautical' ? 'active' : ''}" onclick="setMapTileMode('nautical')">🗺 Maritime Chart</button>
+              <button class="filter-pill ${STATE.mapTileMode === 'satellite' ? 'active' : ''}" onclick="setMapTileMode('satellite')">🛰 Satellite View (Esri)</button>
+              <button class="filter-pill ${STATE.mapTileMode === 'dark' ? 'active' : ''}" onclick="setMapTileMode('dark')">radar Dark Mode</button>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <button class="btn btn-sm ${STATE.tracking.playing ? 'btn-primary' : 'btn-cyan'}" onclick="toggleMapSimPlay()">
+              ${STATE.tracking.playing ? '❚❚ Pause AIS' : '▶ Play AIS'}
+            </button>
+            <div class="pill-group">
+              ${[1, 5, 20].map(sp => `
+                <button class="filter-pill ${STATE.tracking.speed === sp ? 'active' : ''}" onclick="setMapSimSpeed(${sp})">${sp}x</button>
+              `).join('')}
+            </div>
+            <button class="filter-pill ${STATE.mapShowWeather ? 'active' : ''}" onclick="toggleMapWeather()">Storm Zones</button>
+            <span class="mono" id="mapUtcClock" style="font-size: 12px; padding: 5px 9px; background: var(--surf-alt); border-radius: 6px;">${utcStr}</span>
+          </div>
+        </div>
+
+        <div class="map-layout">
+          <!-- Interactive Leaflet Map Container -->
+          <div style="position: relative;">
+            <div id="leafletMapContainer"></div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 11.5px; color: var(--ink-muted); flex-wrap: wrap; gap: 8px;">
+              <div>
+                <span class="badge live-tag">REAL TILES & PORT COORDS</span>
+                <span style="margin-left: 6px;">Esri World Imagery Satellite / CartoDB / OpenSeaMap Overlay</span>
+              </div>
+              <div>
+                <span class="badge sim-tag">SIMULATED AIS STREAM</span>
+                <span style="margin-left: 6px;">Click any vessel or port marker on map for telemetry</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right AIS Telemetry & Quick Jump Panel -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Live AIS Vessel Inspector</h3>
+              <span class="badge sim-tag"><span class="badge-dot"></span>AIS Stream</span>
+            </div>
+
+            <!-- Quick Region Focus Buttons -->
+            <div style="margin-bottom: 12px;">
+              <div class="form-label" style="margin-bottom: 5px;">Jump Map Region:</div>
+              <div class="pill-group">
+                <button class="filter-pill" onclick="flyToRegion(61.8, 23.5, 5)">🇫🇮 Finland & Baltic</button>
+                <button class="filter-pill" onclick="flyToRegion(14.5, 88.0, 4)">🇮🇳 Bay of Bengal</button>
+                <button class="filter-pill" onclick="flyToRegion(22.0, 114.0, 4)">🇨🇳 East Asia</button>
+                <button class="filter-pill" onclick="flyToRegion(25.0, 65.0, 2)">🌍 Global View</button>
+              </div>
+            </div>
+
+            <!-- Vessel Selector -->
+            <div class="form-group" style="margin-bottom: 12px;">
+              <label class="form-label">Select Tracked Vessel</label>
+              <select class="form-select" onchange="focusMapVessel(this.value)">
+                ${STATE.vessels.map(v => `<option value="${v.id}" ${v.id === selVessel.id ? 'selected' : ''}>${v.name} (${v.type})</option>`).join('')}
+              </select>
+            </div>
+
+            <div style="padding: 12px; border-radius: var(--radius-sm); background: var(--surf-alt); margin-bottom: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong style="font-family: var(--font-display); font-size: 1.05rem;">${selVessel.name}</strong>
+                <span class="badge ${selVessel.availability === 'Available' ? 'ok' : 'inf'}">${selVessel.availability}</span>
+              </div>
+              <div style="font-size: 12px; color: var(--ink-muted); margin-top: 2px;">IMO <span class="mono">${selVessel.imo}</span> • ${formatNumber(selVessel.dwt)} DWT</div>
+            </div>
+
+            <div id="liveVesselTelemetryBox" style="display: flex; flex-direction: column; gap: 8px; font-size: 12.5px;">
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 5px;">
+                <span style="color: var(--ink-muted);">GPS Position:</span>
+                <strong class="mono">${selVessel.lat.toFixed(4)}°, ${selVessel.lon.toFixed(4)}°</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 5px;">
+                <span style="color: var(--ink-muted);">Speed (SOG) / Course:</span>
+                <strong class="mono" style="color: var(--cyan);">${selVessel.sog.toFixed(1)} kn / ${selVessel.cog}°</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 5px;">
+                <span style="color: var(--ink-muted);">Current Sector:</span>
+                <strong>${selVessel.currentLocation}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 5px;">
+                <span style="color: var(--ink-muted);">Destination:</span>
+                <strong>${selVessel.destination}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 5px;">
+                <span style="color: var(--ink-muted);">Projected ETA:</span>
+                <strong class="mono" style="color: var(--accent);">${selVessel.eta}</strong>
+              </div>
+              <div>
+                <div style="display: flex; justify-content: space-between; font-size: 11.5px; margin-bottom: 4px;">
+                  <span>Voyage Progress</span>
+                  <strong class="mono">${selVessel.progressPct}%</strong>
+                </div>
+                <div class="progress-track"><div class="progress-fill" style="width: ${selVessel.progressPct}%;"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function initLeafletMap() {
+      const container = document.getElementById('leafletMapContainer');
+      if (!container || typeof L === 'undefined') return;
+
+      if (window._leafletMap) {
+        window._leafletMap.remove();
+      }
+
+      const selVessel = getVesselById(STATE.tracking.selectedVesselId);
+      const map = L.map('leafletMapContainer', { zoomControl: true }).setView([selVessel.lat, selVessel.lon], 4);
+      window._leafletMap = map;
+
+      // Base Tile Layers (Real Esri Satellite, Carto Light Maritime, Carto Dark Radar)
+      const tileUrls = {
+        nautical: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+        satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      };
+
+      L.tileLayer(tileUrls[STATE.mapTileMode] || tileUrls.nautical, {
+        attribution: '&copy; OpenStreetMap &copy; CARTO / Esri World Imagery',
+        maxZoom: 18
+      }).addTo(map);
+
+      // Optional OpenSeaMap Nautical Seamarks Overlay
+      L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
+        opacity: 0.75,
+        attribution: 'OpenSeaMap'
+      }).addTo(map);
+
+      // Storm / Weather Polygon Overlay
+      if (STATE.mapShowWeather) {
+        L.circle([16.5, 89.0], {
+          color: '#f59e0b',
+          fillColor: '#f59e0b',
+          fillOpacity: 0.18,
+          radius: 420000
+        }).addTo(map).bindPopup('<strong>996 hPa Bay of Bengal Low</strong><br/>2.8m SW Swell • 26 kt Winds');
+      }
+
+      // Plot All Global & Finnish Ports
+      GLOBAL_PORTS.forEach(p => {
+        const isFinland = p.country === 'Finland';
+        const portMarker = L.circleMarker([p.lat, p.lon], {
+          radius: isFinland ? 6 : 5.5,
+          fillColor: isFinland ? '#06b6d4' : '#0284c7',
+          color: '#ffffff',
+          weight: 1.5,
+          fillOpacity: 0.92
+        }).addTo(map);
+
+        portMarker.bindPopup(`
+          <div style="font-family: Public Sans, sans-serif; min-width: 190px;">
+            <div style="font-size: 10px; font-weight: 800; color: #0891b2;">${p.code} • ${p.country.toUpperCase()}</div>
+            <div style="font-weight: 800; font-size: 13.5px; margin: 2px 0;">${p.name}</div>
+            <div style="font-size: 11.5px; color: #475569;">Max Draft: <strong>${p.maxDraft}m</strong> • Queue: ${p.congestion}</div>
+            <div style="font-size: 11px; margin-top: 4px;">${p.facilities.join(', ')}</div>
+          </div>
+        `);
+      });
+
+      // Plot Shipping Routes & Live Vessel Markers
+      window._vesselMapMarkers = {};
+      STATE.vessels.forEach(v => {
+        if (STATE.mapShowRoutes && v.waypoints && v.waypoints.length > 1) {
+          L.polyline(v.waypoints, {
+            color: v.id === selVessel.id ? '#06b6d4' : '#38bdf8',
+            weight: v.id === selVessel.id ? 3 : 1.6,
+            opacity: v.id === selVessel.id ? 0.9 : 0.45,
+            dashArray: v.id === selVessel.id ? null : '6, 6'
+          }).addTo(map);
+        }
+
+        const shipIcon = L.divIcon({
+          className: 'custom-ship-icon',
+          html: `<div style="
+            background: ${v.id === selVessel.id ? '#06b6d4' : '#07192c'};
+            color: #ffffff;
+            border: 2px solid #ffffff;
+            border-radius: 999px;
+            padding: 3px 8px;
+            font-family: Public Sans, sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.45);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+          ">▲ ${v.name.replace('MV ', '')}</div>`,
+          iconSize: [110, 24],
+          iconAnchor: [55, 12]
+        });
+
+        const marker = L.marker([v.lat, v.lon], { icon: shipIcon }).addTo(map);
+        marker.bindPopup(`
+          <div style="font-family: Public Sans, sans-serif;">
+            <strong>${v.name}</strong> (IMO ${v.imo})<br/>
+            Type: ${v.type} • ${formatNumber(v.dwt)} DWT<br/>
+            SOG: <strong>${v.sog} kn</strong> • COG: ${v.cog}°<br/>
+            Dest: ${v.destination}<br/>
+            ETA: <strong>${v.eta}</strong>
+          </div>
+        `);
+        marker.on('click', () => {
+          STATE.tracking.selectedVesselId = v.id;
+        });
+        window._vesselMapMarkers[v.id] = marker;
+      });
+    }
+
+    function setMapTileMode(mode) {
+      STATE.mapTileMode = mode;
+      renderApp();
+    }
+
+    function toggleMapWeather() {
+      STATE.mapShowWeather = !STATE.mapShowWeather;
+      renderApp();
+    }
+
+    function toggleMapSimPlay() {
+      STATE.tracking.playing = !STATE.tracking.playing;
+      renderApp();
+    }
+
+    function setMapSimSpeed(sp) {
+      STATE.tracking.speed = sp;
+      renderApp();
+    }
+
+    function flyToRegion(lat, lon, zoom) {
+      if (window._leafletMap) {
+        window._leafletMap.flyTo([lat, lon], zoom, { duration: 1.1 });
+      }
+    }
+
+    function focusMapVessel(vid) {
+      STATE.tracking.selectedVesselId = vid;
+      const v = getVesselById(vid);
+      renderApp();
+      setTimeout(() => {
+        if (window._leafletMap) window._leafletMap.flyTo([v.lat, v.lon], 5);
+      }, 60);
+    }
+
+    // Live AIS Ticker (Advances vessel positions along their authentic waypoints)
+    setInterval(() => {
+      if (!STATE.tracking.playing) return;
+      const mult = STATE.tracking.speed;
+      STATE.tracking.simTimeMs += 60000 * mult;
+
+      STATE.vessels.forEach(v => {
+        if (!v.waypoints || v.waypoints.length < 2) return;
+        const target = v.waypoints[v.waypoints.length - 1];
+        const dLat = target[0] - v.lat;
+        const dLon = target[1] - v.lon;
+        const dist = Math.sqrt(dLat * dLat + dLon * dLon);
+        if (dist > 0.25) {
+          const step = 0.015 * mult;
+          v.lat += (dLat / dist) * step;
+          v.lon += (dLon / dist) * step;
+        }
+        if (window._vesselMapMarkers && window._vesselMapMarkers[v.id]) {
+          window._vesselMapMarkers[v.id].setLatLng([v.lat, v.lon]);
+        }
+      });
+
+      const clockEl = document.getElementById('mapUtcClock');
+      if (clockEl) {
+        clockEl.textContent = new Date(STATE.tracking.simTimeMs).toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+      }
+    }, 1000);
+
+    /* ------------------------------------------------------------------------
+       K. VIEW 3: GLOBAL PORT SEARCH (COMPLETE FINLAND & WORLD PORT DIRECTORY)
+       ------------------------------------------------------------------------ */
+    function renderPortsView() {
+      const q = STATE.portSearch.trim().toLowerCase();
+      const countryFilter = STATE.portCountryFilter;
+      const facFilter = STATE.portFacilityFilter;
+
+      const countries = ['All', ...new Set(GLOBAL_PORTS.map(p => p.country))];
+
+      const filtered = GLOBAL_PORTS.filter(p => {
+        if (countryFilter !== 'All' && p.country !== countryFilter) return false;
+        if (facFilter !== 'All' && !p.facilities.some(f => f.toLowerCase().includes(facFilter.toLowerCase()))) return false;
+        if (!q) return true;
+        const hay = `${p.name} ${p.country} ${p.code} ${p.region} ${p.facilities.join(' ')}`.toLowerCase();
+        return hay.includes(q);
+      });
+
+      return `
+        <!-- Search & Country Quick Pills -->
+        <div class="card" style="margin-bottom: 18px;">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Global Port Search & Terminal Directory</h3>
+              <div class="card-subtitle">Search by country (e.g., <strong>Finland</strong>), port name, UN/LOCODE, or cargo handling facility</div>
+            </div>
+            <span class="badge live-tag">REAL UN/LOCODE & COORDINATES</span>
+          </div>
+
+          <div class="grid-3" style="margin-bottom: 12px;">
+            <div class="form-group">
+              <label class="form-label">Search Port Name, Country or UN/LOCODE</label>
+              <input type="text" class="form-input" placeholder="Try 'Finland', 'Helsinki', 'HaminaKotka', 'Paradip'..." value="${STATE.portSearch}" oninput="updatePortFilter('portSearch', this.value)" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Filter by Country</label>
+              <select class="form-select" onchange="updatePortFilter('portCountryFilter', this.value)">
+                ${countries.map(c => `<option value="${c}" ${countryFilter === c ? 'selected' : ''}>${c === 'All' ? 'All Countries (' + GLOBAL_PORTS.length + ' Ports)' : c}</option>`).join('')}
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Cargo Facility Type</label>
+              <select class="form-select" onchange="updatePortFilter('portFacilityFilter', this.value)">
+                ${['All', 'Container', 'Dry Bulk', 'Liquid Bulk', 'Ro-Ro', 'Timber', 'Iron Ore', 'Ice-Class'].map(f =>
+                  `<option value="${f}" ${facFilter === f ? 'selected' : ''}>${f === 'All' ? 'All Cargo Facilities' : f}</option>`
+                ).join('')}
+              </select>
+            </div>
+          </div>
+
+          <div class="pill-group">
+            <span style="font-size: 11.5px; font-weight: 700; color: var(--ink-muted);">Quick Country Filters:</span>
+            ${['All', 'Finland', 'India', 'China', 'Netherlands', 'Singapore', 'Australia'].map(c => `
+              <button class="filter-pill ${countryFilter === c ? 'active' : ''}" onclick="updatePortFilter('portCountryFilter', '${c}')">
+                ${c === 'Finland' ? '🇫🇮 Finland (' + GLOBAL_PORTS.filter(p => p.country === 'Finland').length + ')' : c}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Results Summary & Port Directory Table -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Showing ${filtered.length} Available Ports ${countryFilter !== 'All' ? `in ${countryFilter}` : ''}</h3>
+            <button class="btn btn-sm btn-primary" onclick="navigateTo('booking')">Book Cargo Using Selected Port →</button>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>UN/LOCODE</th>
+                  <th>Port Name & Region</th>
+                  <th>Country</th>
+                  <th>Coordinates (Lat / Lon)</th>
+                  <th>Max Draft</th>
+                  <th>Cargo Facilities</th>
+                  <th>Status / Queue</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filtered.map(p => `
+                  <tr>
+                    <td class="mono" style="font-weight: 700; color: var(--cyan);">${p.code}</td>
+                    <td>
+                      <div style="font-weight: 700;">${p.name}</div>
+                      <div style="font-size: 11.5px; color: var(--ink-muted);">${p.region}</div>
+                    </td>
+                    <td><strong>${p.country}</strong></td>
+                    <td class="mono" style="font-size: 12px;">${p.lat.toFixed(3)}°, ${p.lon.toFixed(3)}°</td>
+                    <td class="mono" style="font-weight: 700;">${p.maxDraft.toFixed(1)} m</td>
+                    <td>
+                      <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                        ${p.facilities.map(fac => `<span class="badge inf" style="font-size: 10px; padding: 2px 6px;">${fac}</span>`).join('')}
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge ${p.status === 'Operational' ? 'ok' : 'rev'}">${p.status}</span>
+                      <div style="font-size: 11px; color: var(--ink-muted); margin-top: 2px;">Wait: ${p.congestion}</div>
+                    </td>
+                    <td>
+                      <div style="display: flex; gap: 5px;">
+                        <button class="btn btn-sm" onclick="viewPortOnMap('${p.code}')">Map</button>
+                        <button class="btn btn-sm btn-cyan" onclick="bookFromPort('${p.code}')">Book</button>
+                      </div>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function updatePortFilter(key, val) {
+      STATE[key] = val;
+      renderApp();
+    }
+
+    function viewPortOnMap(code) {
+      const p = getPortByCode(code);
+      STATE.focusedPortCode = code;
+      navigateTo('map');
+      setTimeout(() => {
+        if (window._leafletMap) window._leafletMap.flyTo([p.lat, p.lon], 8);
+      }, 80);
+    }
+
+    function bookFromPort(code) {
+      STATE.bookingForm.originCode = code;
+      navigateTo('booking');
+    }
+
+    /* ------------------------------------------------------------------------
+       L. VIEW 4: VESSEL SEARCH & FLEET REGISTRY
+       ------------------------------------------------------------------------ */
+    function renderVesselsView() {
+      const q = STATE.vesselSearch.trim().toLowerCase();
+      const tFilter = STATE.vesselTypeFilter;
+      const aFilter = STATE.vesselAvailFilter;
+
+      const filtered = STATE.vessels.filter(v => {
+        if (tFilter !== 'All' && !v.type.toLowerCase().includes(tFilter.toLowerCase())) return false;
+        if (aFilter !== 'All' && v.availability !== aFilter) return false;
+        if (!q) return true;
+        const hay = `${v.name} ${v.imo} ${v.type} ${v.currentLocation} ${v.destination}`.toLowerCase();
+        return hay.includes(q);
+      });
+
+      return `
+        <div class="card" style="margin-bottom: 18px;">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Global Vessel Registry & Charter Search</h3>
+              <div class="card-subtitle">Search by Ship Name, IMO Number, Vessel Type, Capacity/DWT, Availability, Current Location & Destination</div>
+            </div>
+            <span class="badge sim-tag">SIMULATED LIVE FLEET AVAILABILITY</span>
+          </div>
+
+          <div class="grid-3">
+            <div class="form-group">
+              <label class="form-label">Search Ship Name, IMO, Location or Destination</label>
+              <input type="text" class="form-input" placeholder="e.g., Pacific Meridian, 9894120, Helsinki, Rizhao..." value="${STATE.vesselSearch}" oninput="updateVesselSearch('vesselSearch', this.value)" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Vessel Type</label>
+              <select class="form-select" onchange="updateVesselSearch('vesselTypeFilter', this.value)">
+                ${['All', 'Ultramax', 'Panamax', 'Ice-Class', 'Ro-Ro'].map(t => `<option value="${t}" ${tFilter === t ? 'selected' : ''}>${t === 'All' ? 'All Vessel Types' : t}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Availability Status</label>
+              <select class="form-select" onchange="updateVesselSearch('vesselAvailFilter', this.value)">
+                ${['All', 'Available', 'On Charter'].map(a => `<option value="${a}" ${aFilter === a ? 'selected' : ''}>${a === 'All' ? 'All Statuses' : a}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          ${filtered.map(v => `
+            <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; gap: 12px;">
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px;">
+                  <div>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                      <h3 class="card-title" style="font-size: 1.15rem;">${v.name}</h3>
+                      <span class="badge inf">${v.type}</span>
+                    </div>
+                    <div style="font-size: 12px; color: var(--ink-muted); margin-top: 2px;">
+                      IMO Number: <strong class="mono">${v.imo}</strong> • Built ${v.built} • Rating ★ ${v.rating}
+                    </div>
+                  </div>
+                  <span class="badge ${v.availability === 'Available' ? 'ok' : 'rev'}">${v.availability}</span>
+                </div>
+
+                <div class="vessel-specs-grid" style="margin-bottom: 12px;">
+                  <div class="spec-item"><span class="spec-k">Deadweight (DWT)</span><span class="spec-v mono">${formatNumber(v.dwt)} DWT</span></div>
+                  <div class="spec-item"><span class="spec-k">Cargo Capacity</span><span class="spec-v mono">${formatNumber(v.capacityMt)} MT</span></div>
+                  <div class="spec-item"><span class="spec-k">Max Draft</span><span class="spec-v mono">${v.draft.toFixed(1)} m</span></div>
+                  <div class="spec-item"><span class="spec-k">Handling Gear</span><span class="spec-v">${v.gearSpec}</span></div>
+                  <div class="spec-item"><span class="spec-k">Spot Charter Rate</span><span class="spec-v mono" style="color: var(--cyan);">$${v.rate.toFixed(2)}/MT</span></div>
+                  <div class="spec-item"><span class="spec-k">Speed (SOG)</span><span class="spec-v mono">${v.sog} kn</span></div>
+                </div>
+
+                <div style="padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12.5px;">
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <span style="color: var(--ink-muted);">Current Location:</span>
+                    <strong>${v.currentLocation}</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--ink-muted);">Destination / Corridor:</span>
+                    <strong>${v.destination}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 8px; padding-top: 8px; border-top: 1px solid var(--border);">
+                <button class="btn btn-primary" style="flex: 1;" onclick="bookSpecificVessel('${v.id}')">Charter This Vessel</button>
+                <button class="btn" onclick="focusMapVessel('${v.id}')">Track on Map</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function updateVesselSearch(key, val) {
+      STATE[key] = val;
+      renderApp();
+    }
+
+    function bookSpecificVessel(vid) {
+      STATE.bookingForm.selectedVesselId = vid;
+      navigateTo('booking');
+    }
+
+    /* ------------------------------------------------------------------------
+       M. VIEW 5: IMPORT / EXPORT BOOKING ENGINE
+       ------------------------------------------------------------------------ */
+    function renderBookingView() {
+      const bf = STATE.bookingForm;
+      const orig = getPortByCode(bf.originCode);
+      const dest = getPortByCode(bf.destCode);
+      const distNm = computeMaritimeDistanceNm(orig, dest);
+
+      // Compatible vessels sorted by availability & fit
+      const compatibleVessels = STATE.vessels.filter(v => v.capacityMt >= bf.quantity * 0.85);
+      const selVessel = getVesselById(bf.selectedVesselId);
+      const transitDays = Number((distNm / (selVessel.sog * 24) + 1.2).toFixed(1));
+      const estFreight = bf.quantity * selVessel.rate;
+      const portCharges = 44500;
+      const totalEstCost = estFreight + portCharges;
+
+      return `
+        <div class="grid-2">
+          <!-- Left Booking Configuration Form -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Import / Export Charter Booking</h3>
+                <div class="card-subtitle">Configure ports, cargo stem, quantity, and select available vessel</div>
+              </div>
+              <span class="badge ${bf.direction === 'Export' ? 'inf' : 'rev'}">${bf.direction} Shipment</span>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <!-- Direction Selector -->
+              <div class="form-group">
+                <label class="form-label">Trade Direction</label>
+                <div class="pill-group">
+                  <button type="button" class="filter-pill ${bf.direction === 'Export' ? 'active' : ''}" onclick="updateBookingField('direction', 'Export')">🚢 Export Booking</button>
+                  <button type="button" class="filter-pill ${bf.direction === 'Import' ? 'active' : ''}" onclick="updateBookingField('direction', 'Import')">📥 Import Booking</button>
+                </div>
+              </div>
+
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Export / Origin Port</label>
+                  <select class="form-select" onchange="updateBookingField('originCode', this.value)">
+                    ${GLOBAL_PORTS.map(p => `<option value="${p.code}" ${bf.originCode === p.code ? 'selected' : ''}>${p.country} — ${p.name} (${p.code})</option>`).join('')}
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Import / Destination Port</label>
+                  <select class="form-select" onchange="updateBookingField('destCode', this.value)">
+                    ${GLOBAL_PORTS.map(p => `<option value="${p.code}" ${bf.destCode === p.code ? 'selected' : ''}>${p.country} — ${p.name} (${p.code})</option>`).join('')}
+                  </select>
+                </div>
+              </div>
+
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Cargo Type</label>
+                  <select class="form-select" onchange="updateBookingField('cargo', this.value)">
+                    ${['Kraft Pulp & Sawn Timber', 'Iron Ore Fines (62% Fe)', 'Thermal Coal', 'Containerized Machinery', 'Metallurgical Bauxite', 'Milling Wheat', 'Stainless Steel Coils'].map(c =>
+                      `<option value="${c}" ${bf.cargo === c ? 'selected' : ''}>${c}</option>`
+                    ).join('')}
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Cargo Quantity (Metric Tons)</label>
+                  <input type="number" class="form-input mono" min="5000" max="100000" step="1000" value="${bf.quantity}" onchange="updateBookingField('quantity', Number(this.value))" />
+                </div>
+              </div>
+
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Laycan Start Date</label>
+                  <input type="date" class="form-input mono" value="${bf.laycanStart}" onchange="updateBookingField('laycanStart', this.value)" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Laycan End Date</label>
+                  <input type="date" class="form-input mono" value="${bf.laycanEnd}" onchange="updateBookingField('laycanEnd', this.value)" />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Select Available Vessel (${compatibleVessels.length} Compatible)</label>
+                <select class="form-select" onchange="updateBookingField('selectedVesselId', this.value)">
+                  ${STATE.vessels.map(v => `
+                    <option value="${v.id}" ${bf.selectedVesselId === v.id ? 'selected' : ''}>
+                      ${v.name} (${v.type} • ${formatNumber(v.capacityMt)} MT Cap • $${v.rate.toFixed(2)}/MT • ${v.availability})
+                    </option>
+                  `).join('')}
+                </select>
+              </div>
+
+              <button type="button" class="btn btn-primary" style="min-height: 44px; font-size: 14px;" onclick="submitFreightBooking()">
+                Confirm & Submit ${bf.direction} Booking →
+              </button>
+            </div>
+          </div>
+
+          <!-- Right Instant Freight Quote & Route Calculation -->
+          <div class="card" style="background: var(--surf-alt);">
+            <div class="card-header">
+              <h3 class="card-title">Instant Freight Quote & Transit Estimate</h3>
+              <span class="badge sim-tag">LIVE CALCULATOR</span>
+            </div>
+
+            <div class="grid-2" style="margin-bottom: 14px;">
+              <div class="card" style="padding: 13px;">
+                <div class="spec-k">Estimated Total Freight</div>
+                <div class="kpi-value num" style="color: var(--cyan); margin-top: 4px;">${formatCurrency(totalEstCost)}</div>
+                <div style="font-size: 11.5px; color: var(--ink-muted);">$${selVessel.rate.toFixed(2)}/MT + Port PDA</div>
+              </div>
+              <div class="card" style="padding: 13px;">
+                <div class="spec-k">Estimated Transit Time</div>
+                <div class="kpi-value num" style="margin-top: 4px;">${transitDays} Days</div>
+                <div style="font-size: 11.5px; color: var(--ink-muted);">${formatNumber(distNm)} NM @ ${selVessel.sog} kn</div>
+              </div>
+            </div>
+
+            <div class="card" style="padding: 14px; margin-bottom: 14px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
+                <span style="color: var(--ink-muted);">Origin Port (${orig.code}):</span>
+                <strong>${orig.name}, ${orig.country} (Draft ${orig.maxDraft}m)</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
+                <span style="color: var(--ink-muted);">Destination Port (${dest.code}):</span>
+                <strong>${dest.name}, ${dest.country} (Draft ${dest.maxDraft}m)</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
+                <span style="color: var(--ink-muted);">Assigned Vessel:</span>
+                <strong>${selVessel.name} (IMO ${selVessel.imo})</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
+                <span style="color: var(--ink-muted);">Base Ocean Freight:</span>
+                <strong class="mono">${formatCurrency(estFreight)}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                <span style="color: var(--ink-muted);">Est. Port & Canal Disbursements:</span>
+                <strong class="mono">${formatCurrency(portCharges)}</strong>
+              </div>
+            </div>
+
+            ${selVessel.draft > Math.min(orig.maxDraft, dest.maxDraft) ? `
+              <div style="padding: 10px 12px; border-radius: 8px; background: var(--bad-bg); color: var(--bad-ink); font-size: 12.5px; font-weight: 600;">
+                ⚠ Draft Advisory: ${selVessel.name} (${selVessel.draft}m) exceeds port draft limit (${Math.min(orig.maxDraft, dest.maxDraft)}m). Consider lighter-draft tonnage.
+              </div>
+            ` : `
+              <div style="padding: 10px 12px; border-radius: 8px; background: var(--ok-bg); color: var(--ok-ink); font-size: 12.5px; font-weight: 600;">
+                ✓ Port Draft & Gear Verified: Vessel clears both ${orig.name} and ${dest.name} terminal limits.
+              </div>
+            `}
+          </div>
+        </div>
+      `;
+    }
+
+    function updateBookingField(key, val) {
+      STATE.bookingForm[key] = val;
+      renderApp();
+    }
+
+    function submitFreightBooking() {
+      const bf = STATE.bookingForm;
+      const user = STATE.currentUser || ROLE_ACCOUNTS[0];
+      const vessel = getVesselById(bf.selectedVesselId);
+      const orig = getPortByCode(bf.originCode);
+      const dest = getPortByCode(bf.destCode);
+
+      const newId = 'FQ-' + (2613 + STATE.shipments.length);
+      STATE.shipments.unshift({
+        id: newId,
+        direction: bf.direction,
+        cargo: bf.cargo,
+        quantity: bf.quantity,
+        originCode: bf.originCode,
+        destCode: bf.destCode,
+        vesselId: bf.selectedVesselId,
+        rate: vessel.rate,
+        laycanStart: bf.laycanStart,
+        laycanEnd: bf.laycanEnd,
+        stage: 'Booked • Awaiting Approval',
+        progressPct: 5,
+        eta: 'Scheduled ' + bf.laycanEnd,
+        bookedBy: `${user.name} (${user.role})`
+      });
+
+      STATE.activeShipmentId = newId;
+      logAudit(user.name, user.role, `Submitted ${bf.direction} booking ${newId}: ${formatNumber(bf.quantity)} MT ${bf.cargo} (${orig.code} → ${dest.code})`);
+      navigateTo('orders');
+      showToast(`Booking ${newId} confirmed and added to Orders Ledger!`);
+    }
+
+    /* ------------------------------------------------------------------------
+       N. VIEW 6: AI FREIGHT FORECASTING & VESSEL RECOMMENDATION ENGINE
+       ------------------------------------------------------------------------ */
+    function renderForecastView() {
+      const ff = STATE.forecastForm;
+      const orig = getPortByCode(ff.originCode);
+      const dest = getPortByCode(ff.destCode);
+      const distNm = computeMaritimeDistanceNm(orig, dest);
+
+      // Predictive Model Calculations
+      const baseRatePerNm = 0.0036;
+      const fuelFactor = ff.fuelPrice / 585;
+      const demandIndex = orig.country === 'Finland' || dest.country === 'China' ? 78 : 66;
+      const demandMultiplier = 1 + ((demandIndex - 50) / 250);
+
+      const predictedRate = Number((Math.max(11.5, distNm * baseRatePerNm * fuelFactor * demandMultiplier)).toFixed(2));
+      const lowRate = Number((predictedRate * 0.92).toFixed(2));
+      const highRate = Number((predictedRate * 1.11).toFixed(2));
+      const predictedTotal = ff.quantity * predictedRate;
+      const predictedDuration = Number((distNm / (13.4 * 24) + 1.3).toFixed(1));
+
+      // 6-Month Predictive Rate Curve points for SVG chart
+      const months = ['Nov (Spot)', 'Dec (+30d)', 'Jan (+60d)', 'Feb (+90d)', 'Mar (+120d)', 'Apr (+150d)'];
+      const curveMultipliers = [1.0, 1.045, 1.08, 1.03, 0.98, 1.02];
+      const chartPts = curveMultipliers.map((m, idx) => {
+        const val = Number((predictedRate * m).toFixed(2));
+        const x = 65 + idx * 105;
+        const y = 175 - ((val - lowRate * 0.9) / ((highRate * 1.15) - (lowRate * 0.9))) * 130;
+        return { label: months[idx], val, x, y: Math.max(25, Math.min(180, y)) };
+      });
+
+      const polylineStr = chartPts.map(p => `${p.x},${p.y}`).join(' ');
+
+      // Rank vessels by AI suitability
+      const rankedVessels = STATE.vessels.map(v => {
+        let fit = 94;
+        if (v.draft > Math.min(orig.maxDraft, dest.maxDraft)) fit -= 24;
+        if (v.capacityMt < ff.quantity) fit -= 18;
+        if (orig.country === 'Finland' && v.type.includes('Ice-Class')) fit += 5;
+        if (v.availability === 'Available') fit += 3;
+        return { ...v, aiFit: Math.min(99, Math.max(52, fit)) };
+      }).sort((a, b) => b.aiFit - a.aiFit);
+
+      return `
+        <!-- AI Model Input Parameters -->
+        <div class="card" style="margin-bottom: 18px;">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">AI Freight Forecasting & Demand Engine</h3>
+              <div class="card-subtitle">Predictive rate modeling combining route distance, VLSFO bunker curves, seasonal congestion & regional demand</div>
+            </div>
+            <span class="badge sim-tag">AI PREDICTIVE MODEL v4.2</span>
+          </div>
+
+          <div class="grid-4">
+            <div class="form-group">
+              <label class="form-label">Origin Port</label>
+              <select class="form-select" onchange="updateForecastField('originCode', this.value)">
+                ${GLOBAL_PORTS.map(p => `<option value="${p.code}" ${ff.originCode === p.code ? 'selected' : ''}>${p.name} (${p.country})</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Destination Port</label>
+              <select class="form-select" onchange="updateForecastField('destCode', this.value)">
+                ${GLOBAL_PORTS.map(p => `<option value="${p.code}" ${ff.destCode === p.code ? 'selected' : ''}>${p.name} (${p.country})</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Cargo Tonnage (MT)</label>
+              <input type="number" class="form-input mono" step="1000" value="${ff.quantity}" onchange="updateForecastField('quantity', Number(this.value))" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">VLSFO Bunker Fuel ($/MT)</label>
+              <input type="number" class="form-input mono" step="15" value="${ff.fuelPrice}" onchange="updateForecastField('fuelPrice', Number(this.value))" />
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 AI Forecast KPIs -->
+        <div class="grid-4" style="margin-bottom: 18px;">
+          <div class="card kpi-card">
+            <div class="kpi-label"><span>Predicted Freight Rate</span><span class="badge inf">91% Conf.</span></div>
+            <div class="kpi-value num" style="color: var(--cyan);">$${predictedRate.toFixed(2)}/MT</div>
+            <div class="kpi-foot mono">Range: $${lowRate.toFixed(2)} – $${highRate.toFixed(2)}/MT</div>
+          </div>
+
+          <div class="card kpi-card">
+            <div class="kpi-label"><span>Predicted Total Charter Cost</span><span class="badge ok">Base Case</span></div>
+            <div class="kpi-value num">${formatCurrency(predictedTotal)}</div>
+            <div class="kpi-foot">${formatNumber(ff.quantity)} MT stem basis</div>
+          </div>
+
+          <div class="card kpi-card">
+            <div class="kpi-label"><span>Predicted Route Duration</span><span class="badge inf">${formatNumber(distNm)} NM</span></div>
+            <div class="kpi-value num">${predictedDuration} Days</div>
+            <div class="kpi-foot">Includes weather & port turnaround buffer</div>
+          </div>
+
+          <div class="card kpi-card">
+            <div class="kpi-label"><span>Corridor Cargo Demand Index</span><span class="badge rev">High Demand</span></div>
+            <div class="kpi-value num">${demandIndex} / 100</div>
+            <div class="kpi-foot">Tight vessel supply projected in +30d</div>
+          </div>
+        </div>
+
+        <!-- Forecast Trend Chart + AI Vessel Recommendations -->
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">6-Month AI Rate Trajectory ($/MT)</h3>
+                <div class="card-subtitle">${orig.code} → ${dest.code} forward freight curve</div>
+              </div>
+            </div>
+
+            <svg viewBox="0 0 640 220" style="width: 100%; height: auto; background: var(--surf-alt); border-radius: 10px; border: 1px solid var(--border);">
+              <line x1="50" y1="180" x2="610" y2="180" stroke="var(--border)" stroke-width="1" />
+              <line x1="50" y1="110" x2="610" y2="110" stroke="var(--border)" stroke-dasharray="4 4" />
+              <line x1="50" y1="40" x2="610" y2="40" stroke="var(--border)" stroke-dasharray="4 4" />
+
+              <polyline fill="none" stroke="#06b6d4" stroke-width="3.5" points="${polylineStr}" />
+
+              ${chartPts.map(p => `
+                <circle cx="${p.x}" cy="${p.y}" r="5.5" fill="#07192c" stroke="#22d3ee" stroke-width="2.5" />
+                <text x="${p.x}" y="${p.y - 11}" text-anchor="middle" fill="var(--ink)" font-family="JetBrains Mono, monospace" font-size="11" font-weight="700">$${p.val}</text>
+                <text x="${p.x}" y="202" text-anchor="middle" fill="var(--ink-muted)" font-family="Public Sans, sans-serif" font-size="10.5">${p.label}</text>
+              `).join('')}
+            </svg>
+
+            <div style="margin-top: 12px; font-size: 12.5px; color: var(--ink-muted);">
+              <strong>AI Recommendation:</strong> Forward curves indicate a <strong>+8.0% seasonal rate spike</strong> over the next 60 days due to winter Baltic ice-class premiums and Asian restocking. Locking a fixture now saves ~${formatCurrency(ff.quantity * (predictedRate * 0.08))}.
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">AI Recommended Vessels for Route</h3>
+              <span class="badge ok">Top Ranked</span>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              ${rankedVessels.slice(0, 3).map((v, i) => `
+                <div style="padding: 11px 13px; border: 1px solid ${i === 0 ? 'var(--cyan)' : 'var(--border)'}; border-radius: var(--radius-sm); background: var(--surf-alt);">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <div>
+                      <span class="mono" style="font-weight: 800; color: var(--cyan);">#${i + 1}</span>
+                      <strong style="margin-left: 5px;">${v.name}</strong>
+                      <span style="font-size: 11.5px; color: var(--ink-muted);">(${v.type})</span>
+                    </div>
+                    <span class="badge ok">${v.aiFit}% AI Fit</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-top: 6px;">
+                    <span class="mono">${formatNumber(v.capacityMt)} MT Cap • Draft ${v.draft}m • $${v.rate.toFixed(2)}/MT</span>
+                    <button class="btn btn-sm btn-primary" onclick="bookAiRecommended('${v.id}')">Book Vessel →</button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function updateForecastField(key, val) {
+      STATE.forecastForm[key] = val;
+      renderApp();
+    }
+
+    function bookAiRecommended(vid) {
+      STATE.bookingForm.originCode = STATE.forecastForm.originCode;
+      STATE.bookingForm.destCode = STATE.forecastForm.destCode;
+      STATE.bookingForm.quantity = STATE.forecastForm.quantity;
+      STATE.bookingForm.selectedVesselId = vid;
+      navigateTo('booking');
+    }
+
+    /* ------------------------------------------------------------------------
+       O. VIEW 7: SCENARIO SIMULATOR (CHARTER NOW VS WAIT)
+       ------------------------------------------------------------------------ */
+    function renderScenarioView() {
+      const ship = getActiveShipment();
+      const sc = STATE.scenario;
+
+      const optATotal = (ship.quantity * ship.rate) + (0.5 * sc.demurrageRate) + (sc.congestionSurge ? sc.demurrageRate : 0);
+      const driftedRate = ship.rate * (1 + sc.rateDriftPct / 100);
+      const optBTotal = (ship.quantity * driftedRate) + (sc.waitDays * sc.demurrageRate * 0.65) + (sc.congestionSurge ? 3.5 * sc.demurrageRate : 0.5 * sc.demurrageRate);
+      const savings = optBTotal - optATotal;
+      const maxVal = Math.max(optATotal, optBTotal);
+
+      return `
+        <div class="card" style="margin-bottom: 18px;">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Chartering Timing & Market Drift Simulator (${ship.id})</h3>
+              <div class="card-subtitle">Stress-test immediate fixture vs waiting for spot market movement</div>
+            </div>
+            <span class="badge ${savings >= 0 ? 'ok' : 'inf'}">
+              ${savings >= 0 ? `Charter Now Saves ${formatCurrency(savings)}` : `Waiting Saves ${formatCurrency(Math.abs(savings))}`}
+            </span>
+          </div>
+
+          <div class="grid-3">
+            <div class="form-group">
+              <label class="form-label">Wait Period: <span class="mono" style="color: var(--cyan);">${sc.waitDays} Days</span></label>
+              <input type="range" min="0" max="14" value="${sc.waitDays}" oninput="updateScenario('waitDays', Number(this.value))" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Spot Rate Drift: <span class="mono" style="color: var(--cyan);">${sc.rateDriftPct}%</span></label>
+              <input type="range" min="-15" max="25" step="0.5" value="${sc.rateDriftPct}" oninput="updateScenario('rateDriftPct', Number(this.value))" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Port Congestion Surge</label>
+              <button class="btn ${sc.congestionSurge ? 'btn-primary' : ''}" onclick="updateScenario('congestionSurge', !STATE.scenario.congestionSurge)">
+                ${sc.congestionSurge ? '⚠ Congested (+3.5d Queue)' : '✓ Normal Lineup'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card" style="border: 2px solid var(--cyan);">
+            <div class="card-header"><h3 class="card-title">Option A: Charter Immediately</h3><span class="badge ok">Recommended</span></div>
+            <div class="kpi-value num">${formatCurrency(optATotal)}</div>
+            <div class="stacked-bar"><div class="stacked-seg" style="width: ${(optATotal / maxVal) * 100}%; background: var(--cyan);"></div></div>
+            <div style="font-size: 13px; color: var(--ink-muted);">Locks $${ship.rate.toFixed(2)}/MT immediately with minimal berth queue exposure.</div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">Option B: Wait ${sc.waitDays} Days</h3><span class="badge rev">Drifted Rate $${driftedRate.toFixed(2)}/MT</span></div>
+            <div class="kpi-value num">${formatCurrency(optBTotal)}</div>
+            <div class="stacked-bar"><div class="stacked-seg" style="width: ${(optBTotal / maxVal) * 100}%; background: #f59e0b;"></div></div>
+            <div style="font-size: 13px; color: var(--ink-muted);">Exposes stem to ${sc.rateDriftPct}% market rate drift and waiting demurrage.</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function updateScenario(k, v) { STATE.scenario[k] = v; renderApp(); }
+
+    /* ------------------------------------------------------------------------
+       P. VIEW 8: ORDERS & BOOKINGS LEDGER
+       ------------------------------------------------------------------------ */
+    function renderOrdersView() {
+      return `
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Import / Export Bookings & Voyages Ledger</h3>
+              <div class="card-subtitle">Live status across Exporter, Importer, Ship Owner, and Admin desks</div>
+            </div>
+            <button class="btn btn-primary" onclick="navigateTo('booking')">+ New Import/Export Booking</button>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Booking ID</th>
+                  <th>Direction</th>
+                  <th>Origin → Destination</th>
+                  <th>Cargo & Quantity</th>
+                  <th>Assigned Vessel</th>
+                  <th>Est. Freight</th>
+                  <th>Lifecycle Stage</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${STATE.shipments.map(s => {
+                  const op = getPortByCode(s.originCode);
+                  const dp = getPortByCode(s.destCode);
+                  const v = getVesselById(s.vesselId);
+                  return `
+                    <tr>
+                      <td class="mono" style="font-weight: 800; color: var(--cyan);">${s.id}</td>
+                      <td><span class="badge ${s.direction === 'Export' ? 'inf' : 'rev'}">${s.direction}</span></td>
+                      <td><strong>${op.name}</strong> → <strong>${dp.name}</strong></td>
+                      <td>${s.cargo} (<span class="mono">${formatNumber(s.quantity)} MT</span>)</td>
+                      <td>${v.name}</td>
+                      <td class="mono" style="font-weight: 700;">${formatCurrency(s.quantity * s.rate)}</td>
+                      <td><span class="badge ok">${s.stage}</span></td>
+                      <td>
+                        <div style="display: flex; gap: 6px;">
+                          <button class="btn btn-sm" onclick="switchShipment('${s.id}'); navigateTo('report');">Memo</button>
+                          <button class="btn btn-sm btn-cyan" onclick="focusMapVessel('${v.id}')">Track</button>
+                        </div>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    /* ------------------------------------------------------------------------
+       Q. VIEW 9: EXECUTIVE DECISION REPORT (PRINT-READY)
+       ------------------------------------------------------------------------ */
+    function renderReportView() {
+      const ship = getActiveShipment();
+      const op = getPortByCode(ship.originCode);
+      const dp = getPortByCode(ship.destCode);
+      const v = getVesselById(ship.vesselId);
+      const distNm = computeMaritimeDistanceNm(op, dp);
+
+      return `
+        <div class="card no-print" style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+          <span class="badge ok">Executive Fixture Memorandum Ready</span>
+          <button class="btn btn-primary" onclick="window.print()">🖨 Print / Export PDF</button>
+        </div>
+
+        <div class="card" style="padding: 28px;">
+          <div style="border-bottom: 2px solid var(--border); padding-bottom: 16px; margin-bottom: 18px;">
+            <div class="mono" style="font-size: 11.5px; font-weight: 700; color: var(--cyan);">FREIGHTIQ MARITIME CHARTERING & FORECASTING DESK</div>
+            <h2 style="font-size: 1.55rem; font-weight: 800; margin-top: 4px;">Fixture Decision Report: ${ship.id} (${ship.direction})</h2>
+            <div style="font-size: 13px; color: var(--ink-muted);">${op.name} (${op.code}) → ${dp.name} (${dp.code}) • ${formatNumber(distNm)} NM</div>
+          </div>
+
+          <div class="grid-2" style="margin-bottom: 18px;">
+            <div style="padding: 14px; border: 1px solid var(--border); border-radius: 8px;">
+              <h4 style="margin-bottom: 8px;">Cargo & Port Details</h4>
+              <div style="font-size: 13px; line-height: 1.8;">
+                <div>Cargo: <strong>${ship.cargo} (${formatNumber(ship.quantity)} MT)</strong></div>
+                <div>Load Port: <strong>${op.name}, ${op.country}</strong> (Max Draft ${op.maxDraft}m)</div>
+                <div>Discharge Port: <strong>${dp.name}, ${dp.country}</strong> (Max Draft ${dp.maxDraft}m)</div>
+                <div>Laycan Window: <strong class="mono">${ship.laycanStart} to ${ship.laycanEnd}</strong></div>
+              </div>
+            </div>
+
+            <div style="padding: 14px; border: 1px solid var(--border); border-radius: 8px;">
+              <h4 style="margin-bottom: 8px;">Chartered Vessel & Financials</h4>
+              <div style="font-size: 13px; line-height: 1.8;">
+                <div>Vessel: <strong>${v.name}</strong> (IMO ${v.imo} • ${v.type})</div>
+                <div>Deadweight / Draft: <strong class="mono">${formatNumber(v.dwt)} DWT / ${v.draft}m</strong></div>
+                <div>Charter Rate: <strong class="mono">$${ship.rate.toFixed(2)}/MT</strong></div>
+                <div>Estimated Total Freight: <strong class="mono" style="color: var(--cyan);">${formatCurrency(ship.quantity * ship.rate)}</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    /* ------------------------------------------------------------------------
+       R. VIEW 10: ADMIN CONTROL CENTER (USERS, FLEET, PORTS, BOOKINGS, LOGS)
+       ------------------------------------------------------------------------ */
+    function renderAdminView() {
+      return `
+        <div class="grid-4" style="margin-bottom: 18px;">
+          <div class="card kpi-card"><div class="kpi-label">Registered Users</div><div class="kpi-value num">${STATE.users.length}</div><div class="kpi-foot">Admin, Exporter, Importer, Owner</div></div>
+          <div class="card kpi-card"><div class="kpi-label">Managed Fleet</div><div class="kpi-value num">${STATE.vessels.length} Ships</div><div class="kpi-foot">AIS & Charter Registry</div></div>
+          <div class="card kpi-card"><div class="kpi-label">Global Port Database</div><div class="kpi-value num">${GLOBAL_PORTS.length} Ports</div><div class="kpi-foot">16 Finland + Global Hubs</div></div>
+          <div class="card kpi-card"><div class="kpi-label">Active Bookings</div><div class="kpi-value num">${STATE.shipments.length} Stems</div><div class="kpi-foot">Live Charter Ledger</div></div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom: 18px;">
+          <!-- User & Role Management -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">1. Role-Based User Management</h3>
+              <button class="btn btn-sm btn-primary" onclick="adminAddDemoUser()">+ Add User</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>User</th><th>Role</th><th>Organization</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody>
+                  ${STATE.users.map(u => `
+                    <tr>
+                      <td><strong>${u.name}</strong><div class="mono" style="font-size: 11px; color: var(--ink-muted);">${u.email}</div></td>
+                      <td><span class="badge inf">${u.role}</span></td>
+                      <td style="font-size: 12px;">${u.org}</td>
+                      <td><span class="badge ${u.active ? 'ok' : 'bad'}">${u.active ? 'Active' : 'Suspended'}</span></td>
+                      <td><button class="btn btn-sm" onclick="toggleUserActive('${u.id}')">${u.active ? 'Suspend' : 'Activate'}</button></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Add New Vessel to Fleet -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">2. Add Vessel to Global Fleet Registry</h3>
+              <span class="badge sim-tag">FLEET ADMIN</span>
+            </div>
+            <form onsubmit="adminAddVessel(event)" style="display: flex; flex-direction: column; gap: 10px;">
+              <div class="grid-2">
+                <div class="form-group"><label class="form-label">Ship Name</label><input type="text" id="admShipName" class="form-input" placeholder="e.g., MV Baltic Star" required /></div>
+                <div class="form-group"><label class="form-label">IMO Number</label><input type="text" id="admShipImo" class="form-input mono" placeholder="e.g., 9945102" required /></div>
+              </div>
+              <div class="grid-3">
+                <div class="form-group"><label class="form-label">Type</label><input type="text" id="admShipType" class="form-input" value="Ultramax" required /></div>
+                <div class="form-group"><label class="form-label">DWT</label><input type="number" id="admShipDwt" class="form-input mono" value="62000" required /></div>
+                <div class="form-group"><label class="form-label">Rate ($/MT)</label><input type="number" step="0.1" id="admShipRate" class="form-input mono" value="16.8" required /></div>
+              </div>
+              <button type="submit" class="btn btn-cyan">+ Register Vessel in Fleet</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <!-- Booking Approvals -->
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">3. Cargo & Booking Oversight</h3></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>ID</th><th>Corridor</th><th>Cargo</th><th>Status</th><th>Admin Action</th></tr></thead>
+                <tbody>
+                  ${STATE.shipments.map(s => `
+                    <tr>
+                      <td class="mono" style="font-weight: 700;">${s.id}</td>
+                      <td>${s.originCode} → ${s.destCode}</td>
+                      <td>${formatNumber(s.quantity)} MT</td>
+                      <td><span class="badge ok">${s.stage}</span></td>
+                      <td><button class="btn btn-sm btn-primary" onclick="adminApproveBooking('${s.id}')">Approve Fixture</button></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- System Activity Audit Log -->
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">4. System Activity & Telemetry Audit Log</h3></div>
+            <div style="display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto;">
+              ${STATE.auditLogs.map(log => `
+                <div style="padding: 8px 11px; border: 1px solid var(--border); border-radius: 8px; font-size: 12px; background: var(--surf-alt);">
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                    <strong>${log.actor} <span style="color: var(--cyan);">[${log.role}]</span></strong>
+                    <span class="mono" style="color: var(--ink-muted);">${log.time}</span>
+                  </div>
+                  <div style="color: var(--ink-muted);">${log.action}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function toggleUserActive(uid) {
+      const u = STATE.users.find(x => x.id === uid);
+      if (u) {
+        u.active = !u.active;
+        logAudit('Admin', 'Admin', `Changed user ${u.name} status to ${u.active ? 'Active' : 'Suspended'}`);
+        renderApp();
+        showToast(`Updated ${u.name} account status`);
+      }
+    }
+
+    function adminAddDemoUser() {
+      const id = 'U-' + (101 + STATE.users.length);
+      STATE.users.push({
+        id,
+        name: 'Mikko Korhonen',
+        email: `m.korhonen${STATE.users.length}@finnports.fi`,
+        role: 'Exporter',
+        org: 'Bothnia Forest Logistics Oy',
+        active: true
+      });
+      logAudit('Admin', 'Admin', 'Provisioned new Exporter user account (Mikko Korhonen)');
+      renderApp();
+      showToast('Added new Exporter user account');
+    }
+
+    function adminAddVessel(e) {
+      e.preventDefault();
+      const name = document.getElementById('admShipName').value.trim();
+      const imo = document.getElementById('admShipImo').value.trim();
+      const type = document.getElementById('admShipType').value.trim();
+      const dwt = Number(document.getElementById('admShipDwt').value);
+      const rate = Number(document.getElementById('admShipRate').value);
+
+      STATE.vessels.unshift({
+        id: 'v' + (STATE.vessels.length + 1),
+        name,
+        imo,
+        type,
+        dwt,
+        capacityMt: Math.round(dwt * 0.95),
+        built: 2023,
+        draft: 12.9,
+        beam: 32.26,
+        geared: true,
+        gearSpec: '4x30t',
+        availability: 'Available',
+        currentLocation: 'Port of Helsinki, Finland',
+        destination: 'Open for Spot Charter',
+        rate,
+        ballastDays: 1.0,
+        rating: 4.8,
+        lat: 60.15,
+        lon: 25.05,
+        sog: 13.5,
+        cog: 180,
+        eta: 'Open Spot',
+        progressPct: 0,
+        waypoints: [[60.20, 25.17], [55.20, 14.50], [51.94, 4.14]]
+      });
+
+      logAudit('Admin', 'Admin', `Registered vessel ${name} (IMO ${imo}) into fleet registry`);
+      renderApp();
+      showToast(`Registered ${name} in Global Fleet!`);
+    }
+
+    function adminApproveBooking(sid) {
+      const s = STATE.shipments.find(x => x.id === sid);
+      if (s) {
+        s.stage = 'Fixed & Approved';
+        logAudit('Admin', 'Admin', `Approved charter fixture ${sid}`);
+        renderApp();
+        showToast(`Booking ${sid} approved & locked!`);
+      }
+    }
+
+    /* ------------------------------------------------------------------------
+       S. CONTEXT-AWARE AI COPILOT DRAWER
+       ------------------------------------------------------------------------ */
+    function toggleAiDrawer(open) {
+      STATE.aiDrawer.open = open;
+      document.getElementById('aiDrawer').classList.toggle('open', open);
+      if (open) updateAiContextUI();
+    }
+
+    function updateAiContextUI() {
+      const user = STATE.currentUser || ROLE_ACCOUNTS[0];
+      const ship = getActiveShipment();
+      const pill = document.getElementById('aiContextPill');
+      if (pill) pill.textContent = `Role: ${user.role} • Active: ${ship.id}`;
+
+      const chips = [
+        'Show all Finland ports',
+        'Predict freight rate for FIKTK → NLRTM',
+        'Which vessels are available now?',
+        'Track MV Pacific Meridian live'
+      ];
+      const chipsEl = document.getElementById('aiQuickChips');
+      if (chipsEl) {
+        chipsEl.innerHTML = chips.map(c =>
+          `<button type="button" class="ai-chip" onclick="sendAiPrompt('${c}')">${c}</button>`
+        ).join('');
+      }
+      renderAiMessages();
+    }
+
+    function renderAiMessages() {
+      const container = document.getElementById('aiMessages');
+      if (!container) return;
+      container.innerHTML = STATE.aiDrawer.messages.map(m => `
+        <div class="ai-msg ${m.role}">
+          <div>${m.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>
+          ${m.actions ? `<div class="ai-msg-actions">${m.actions.map(a => `<button type="button" class="btn btn-sm" style="font-size:11px;padding:3px 8px;min-height:26px;" onclick="navigateTo('${a.view}')">${a.label}</button>`).join('')}</div>` : ''}
+        </div>
+      `).join('');
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function handleAiSubmit(e) {
+      e.preventDefault();
+      const inp = document.getElementById('aiInput');
+      const txt = inp.value.trim();
+      if (!txt) return;
+      inp.value = '';
+      sendAiPrompt(txt);
+    }
+
+    function sendAiPrompt(txt) {
+      STATE.aiDrawer.messages.push({ role: 'user', text: txt });
+      const q = txt.toLowerCase();
+      let reply = {
+        text: 'I can help you search global & Finnish ports, run AI freight forecasts, track AIS vessels on satellite maps, or create an Import/Export booking.',
+        actions: [{ label: '→ Satellite Map', view: 'map' }, { label: '→ AI Forecast', view: 'forecast' }]
+      };
+
+      if (q.includes('finland') || q.includes('port') || q.includes('helsinki')) {
+        const fiPorts = GLOBAL_PORTS.filter(p => p.country === 'Finland');
+        reply = {
+          text: `FreightIQ tracks **${fiPorts.length} Finnish ports** including **Helsinki (FIHEL)**, **HaminaKotka (FIKTK)**, **Hanko (FIHKO)**, **Turku (FITKU)**, **Rauma (FIRAU)**, **Pori (FIPOR)**, **Kokkola (FIKOK)**, and **Oulu (FIOUL)** with live drafts and Ice-Class 1A capabilities.`,
+          actions: [{ label: '→ Open Finland Port Directory', view: 'ports' }]
+        };
+      } else if (q.includes('forecast') || q.includes('rate') || q.includes('predict')) {
+        reply = {
+          text: 'Our **AI Freight Forecasting Engine** predicts **$21.50/MT** for Baltic Ice-Class routes (FIKTK → NLRTM) and **$16.40–$17.85/MT** for Indo-Pacific bulk corridors, with a projected **+8.0% seasonal surge** over the next 60 days.',
+          actions: [{ label: '→ Open AI Forecast Tool', view: 'forecast' }]
+        };
+      } else if (q.includes('vessel') || q.includes('available') || q.includes('track')) {
+        const open = STATE.vessels.filter(v => v.availability === 'Available').map(v => v.name).join(', ');
+        reply = {
+          text: `Currently available vessels: **${open}**. You can inspect live GPS coordinates, speed (SOG), and satellite imagery on the interactive map.`,
+          actions: [{ label: '→ Vessel Registry', view: 'vessels' }, { label: '→ Live Satellite Map', view: 'map' }]
+        };
+      }
+
+      STATE.aiDrawer.messages.push({ role: 'bot', ...reply });
+      renderAiMessages();
+    }
+
+    /* ------------------------------------------------------------------------
+       T. BOOTSTRAP ON LOAD
+       ------------------------------------------------------------------------ */
+    window.addEventListener('DOMContentLoaded', () => {
+      initLoginScreen();
+      renderApp();
+    });
+  </script>
+</body>
+</html>
